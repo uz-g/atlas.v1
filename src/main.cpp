@@ -57,7 +57,7 @@ void autonomous()
 	//move for seconds
 	leftmotor_group.move(127);
 	rightmotor_group.move(-127);
-	pros::delay(620);
+	pros::delay(550);
 	leftmotor_group.move(0); 
     rightmotor_group.move(0); 
 
