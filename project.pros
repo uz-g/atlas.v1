@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "atlas",
+    "project_name": "atlas.v1",
     "target": "v5",
     "templates": {
       "kernel": {
@@ -309,7 +309,9 @@
       }
     },
     "upload_options": {
-      "slot": 1
+      "slot": 1,
+      "description": "uz.atlas.v1",
+      "icon": "ufo"
     }
   }
 }
