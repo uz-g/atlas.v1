@@ -142,7 +142,7 @@ void opcontrol()
 		{
 			puncher.moveVoltage(12000);
 		}
-		else if(!puncherToggled && !puncherSingleFire.isPressed())
+		else if (!puncherToggled && !puncherSingleFire.isPressed())
 		{
 			puncher.moveVoltage(0);
 		}
