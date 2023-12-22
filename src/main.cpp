@@ -2,24 +2,26 @@
 #include "atlaslib.h"
 #include <fstream>
 
-pros::Motor leftmotor_1(1);
-pros::Motor leftmotor_2(2);
-pros::Motor leftmotor_3(3);
-pros::Motor rightmotor_1(8);
-pros::Motor rightmotor_2(9);
-pros::Motor rightmotor_3(10);
-pros::Motor wingflaps(6);
-pros::Motor_Group leftmtrs({leftmotor_1, leftmotor_2, leftmotor_3});
-pros::Motor_Group rightmtrs({rightmotor_1, rightmotor_2, rightmotor_3});
-pros::Controller master(CONTROLLER_MASTER);
+
+okapi::Motor wings(WINGS, true, okapi::AbstractMotor::gearset::green,
+							okapi::AbstractMotor::encoderUnits::counts);
+
+okapi::Motor puncher(PUNCHER, true, okapi::AbstractMotor::gearset::green,
+							okapi::AbstractMotor::encoderUnits::counts);
+
+okapi::Controller masterController;
+okapi::ControllerButton wingsOut(okapi::ControllerDigital::R1);
+okapi::ControllerButton wingsIn(okapi::ControllerDigital::R2);
+okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
+okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
 
 // chassis
 auto chassis = okapi::ChassisControllerBuilder()
 				   .withMotors({LEFT_MTR2, LEFT_MTR1, LEFT_MTR3}, {-RIGHT_MTR2, -RIGHT_MTR1, -RIGHT_MTR3})
+				   .withDimensions(okapi::AbstractMotor::gearset::green, (60.0 / 36.0), {{3.25_in, 17_in}, okapi::imev5GreenTPR})
+				   // do withdimensions okapi with a green gearset 3.25 in wheels and 16 wheel track
+				   .withOdometry()
 
-
-
-				   
 				   .buildOdometry();
 
 /**
@@ -30,17 +32,15 @@ auto chassis = okapi::ChassisControllerBuilder()
  */
 void initialize()
 {
+
+	
 }
 
 void stop()
 {
-	leftmotor_1.move_velocity(0);
-	leftmotor_2.move_velocity(0);
-	leftmotor_3.move_velocity(0);
-	rightmotor_1.move_velocity(0);
-	rightmotor_2.move_velocity(0);
-	rightmotor_3.move_velocity(0);
-	wingflaps.move_velocity(0);
+	chassis.stop();
+	wings.stop();
+	puncher.stop();
 }
 
 /**
@@ -100,36 +100,19 @@ void autonomous()
 
 void opcontrol()
 {
+	chassis->stop();
+	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	chassis->setMaxVelocity(200);
+	float joystickAvg = 0;
 
 	while (true)
 	{
+		chassis->getModel()->tank(masterController.getAnalog(okapi::ControllerAnalog::leftY),
+								masterController.getAnalog(okapi::ControllerAnalog::rightY));
 
-		// arcade drive [1 stick]
-
-		// int power = master.get_analog(ANALOG_LEFT_Y);
-		// int turn = master.get_analog(ANALOG_LEFT_X);
-		// int left = power + turn;
-		// int right = power - turn;
-		// leftmotor_group.move(-left);
-		// rightmotor_group.move(right);
-
-		// tank drive [2 sticks]
-
-		int left = master.get_analog(ANALOG_RIGHT_Y);
-		int right = master.get_analog(ANALOG_LEFT_Y);
-		leftmtrs.move(left);
-		rightmtrs.move(-right);
-
-		if (master.get_digital(DIGITAL_R1))
-		{
+		if(wingsOut.isPressed()){
 			wingflaps.move(127);
-		}
-		else if (master.get_digital(DIGITAL_R2))
-		{
-			wingflaps.move(-127);
-		}
-		else
-		{
+		} else{
 			wingflaps.move(0);
 		}
 
