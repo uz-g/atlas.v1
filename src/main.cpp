@@ -78,21 +78,10 @@ void autonomous()
 
 	// push ball infornt into goal
 	// move for seconds
-	leftmtrs.move(127);
-	rightmtrs.move(-127);
-	pros::delay(675);
-	leftmtrs.move(0);
-	rightmtrs.move(0);
+	
 
 	// rotate and extend wings
-	wingflaps.move(-127);
-	pros::delay(1200);
-	wingflaps.move(0);
-	leftmtrs.move(-127);
-	rightmtrs.move(-127);
-	pros::delay(420);
-	leftmtrs.move(0);
-	rightmtrs.move(0);
+	
 
 	// Stop all motors
 	stop();
