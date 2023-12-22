@@ -2,12 +2,13 @@
 #include "atlaslib.h"
 #include <fstream>
 
+using namespace okapi;
 
 okapi::Motor wings(WINGS, true, okapi::AbstractMotor::gearset::green,
-							okapi::AbstractMotor::encoderUnits::counts);
+				   okapi::AbstractMotor::encoderUnits::counts);
 
 okapi::Motor puncher(PUNCHER, true, okapi::AbstractMotor::gearset::green,
-							okapi::AbstractMotor::encoderUnits::counts);
+					 okapi::AbstractMotor::encoderUnits::counts);
 
 okapi::Controller masterController;
 okapi::ControllerButton wingsOut(okapi::ControllerDigital::R1);
@@ -16,12 +17,10 @@ okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
 okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
 
 // chassis
+
 auto chassis = okapi::ChassisControllerBuilder()
 				   .withMotors({LEFT_MTR2, LEFT_MTR1, LEFT_MTR3}, {-RIGHT_MTR2, -RIGHT_MTR1, -RIGHT_MTR3})
-				   .withDimensions(okapi::AbstractMotor::gearset::green, (60.0 / 36.0), {{3.25_in, 17_in}, okapi::imev5GreenTPR})
-				   // do withdimensions okapi with a green gearset 3.25 in wheels and 16 wheel track
-				   .withOdometry()
-
+				   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 16_in}, imev5GreenTPR})
 				   .buildOdometry();
 
 /**
@@ -32,15 +31,13 @@ auto chassis = okapi::ChassisControllerBuilder()
  */
 void initialize()
 {
-
-	
 }
 
-void stop()
+void stopAll()
 {
-	chassis.stop();
-	wings.stop();
-	puncher.stop();
+	chassis->stop();
+	wings.moveVoltage(0);
+	puncher.moveVoltage(0);
 }
 
 /**
@@ -78,13 +75,11 @@ void autonomous()
 
 	// push ball infornt into goal
 	// move for seconds
-	
 
 	// rotate and extend wings
-	
 
 	// Stop all motors
-	stop();
+	stopAll();
 }
 
 void opcontrol()
@@ -97,9 +92,9 @@ void opcontrol()
 	while (true)
 	{
 		chassis->getModel()->tank(masterController.getAnalog(okapi::ControllerAnalog::leftY),
-								masterController.getAnalog(okapi::ControllerAnalog::rightY));
+								  masterController.getAnalog(okapi::ControllerAnalog::rightY));
 
-		//if wingsout is pressed then move the wings ,else wings motor is set to 0
+		// if wingsout is pressed then move the wings ,else wings motor is set to 0
 		if (wingsOut.isPressed())
 		{
 			wings.moveVoltage(12000);
