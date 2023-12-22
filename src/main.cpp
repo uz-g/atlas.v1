@@ -3,6 +3,7 @@
 #include <fstream>
 
 using namespace okapi;
+using namespace pros;
 
 okapi::Motor wings(WINGS, true, okapi::AbstractMotor::gearset::green,
 				   okapi::AbstractMotor::encoderUnits::counts);
@@ -23,6 +24,7 @@ bool puncherToggled = false;
 auto chassis = okapi::ChassisControllerBuilder()
 				   .withMotors({LEFT_MTR2, LEFT_MTR1, LEFT_MTR3}, {-RIGHT_MTR2, -RIGHT_MTR1, -RIGHT_MTR3})
 				   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 16_in}, imev5GreenTPR})
+				   .withOdometry()
 				   .buildOdometry();
 
 /**
@@ -47,7 +49,9 @@ void stopAll()
  * the VEX Competition Switch, following either autonomous or opcontrol. When
  * the robot is enabled, this task will exit.
  */
-void disabled() {}
+void disabled() {
+	stopAll();
+}
 
 /**
  * Runs after initialize(), and before autonomous when connected to the Field
@@ -73,12 +77,44 @@ void competition_initialize() {}
  */
 void autonomous()
 {
-	// Set up motor objects
 
+
+	//opponent goalside auton
+	//diagram.red & digram.green lines
+	chassis->driveToPoint({-2_ft, 1.7_ft});
+	chassis->driveToPoint({-2_ft, 1_ft});
+	chassis->driveToPoint({-2_ft, 2_ft});
+
+	//diagram.blue & diagram.white extended lines
+	chassis->driveToPoint({-2_ft, 1.2_ft});
+	chassis->turnAngle(90_deg);
+	wings.moveAbsolute(1000, 200);
+	delay(500);
+
+	//diagram.lightBlue & diagram.white retracted lines
+	chassis->driveToPoint({0_ft, .8_ft});
+	wings.moveAbsolute(-1000,200);
+	chassis->driveToPoint({-.2_ft, .8_ft});
+
+	//diagram.pink line
+	chassis->driveToPoint({1.4_ft, .5_ft});
+	//opponent goalside auton end
+
+
+
+	// ally goalside auton
 	// push ball infornt into goal
-	// move for seconds
+	chassis->driveToPoint({0_ft, 6_ft});
+
 
 	// rotate and extend wings
+	//extend wings
+	wings.moveAbsolute(1000, 200);
+	delay(500);
+	
+
+	chassis->turnAngle(90_deg);
+	//ally goalside auton end
 
 	// Stop all motors
 	stopAll();
