@@ -16,6 +16,8 @@ okapi::ControllerButton wingsIn(okapi::ControllerDigital::R2);
 okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
 okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
 
+bool puncherToggled = false;
+
 // chassis
 
 auto chassis = okapi::ChassisControllerBuilder()
@@ -93,19 +95,56 @@ void opcontrol()
 	{
 		chassis->getModel()->tank(masterController.getAnalog(okapi::ControllerAnalog::leftY),
 								  masterController.getAnalog(okapi::ControllerAnalog::rightY));
+		// chassis is set to coast mode -> motors dont forcefully stop, they coast
 
-		// if wingsout is pressed then move the wings ,else wings motor is set to 0
+		// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
+		// coasts to a stop
 		if (wingsOut.isPressed())
 		{
+			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 			wings.moveVoltage(12000);
 		}
 		else if (wingsIn.isPressed())
 		{
+			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 			wings.moveVoltage(-12000);
 		}
 		else
 		{
 			wings.moveVoltage(0);
+		}
+
+		// single fire pucnher button setup
+		if (puncherSingleFire.isPressed())
+		{
+			puncherToggled = false; // Single fire button is pressed, reset toggle state/untoggle puncher
+			puncher.moveVoltage(12000);
+		}
+		else if (puncherSingleFire.changedToReleased())
+		{
+			puncher.moveVoltage(0);
+		}
+
+		// if puncherToggle is pressed then keep the puncher motor on max speed and keep the puncher on coast,
+		// else puncher motor is set to 0 and coasts to a stop
+
+		if (puncherToggle.isPressed() && !puncherToggled)
+		{
+			puncherToggled = true; // Button was just pressed, toggle the state
+		}
+		else if (puncherToggle.isPressed() && puncherToggled)
+		{
+			puncherToggled = false; // Button is released, reset toggle state
+			puncher.moveVoltage(0);
+		}
+
+		if (puncherToggled)
+		{
+			puncher.moveVoltage(12000);
+		}
+		else if(!puncherToggled && !puncherSingleFire.isPressed())
+		{
+			puncher.moveVoltage(0);
 		}
 
 		pros::delay(20);
