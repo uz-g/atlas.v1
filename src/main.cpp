@@ -177,7 +177,7 @@ void autonomous()
 
 		// diagram.lightBlue & diagram.white retracted lines
 		chassis->driveToPoint({0_ft, .8_ft});
-		wings.moveAbsolute(-1000, 200);
+		wings.moveAbsolute(0, 200);
 		chassis->driveToPoint({-.2_ft, .8_ft});
 
 		// diagram.pink line
