@@ -27,14 +27,95 @@ auto chassis = okapi::ChassisControllerBuilder()
 				   .withOdometry()
 				   .buildOdometry();
 
+enum class autonSelect
+{
+	off,
+	opSide,
+	allySide,
+	skills
+};
+
+autonSelect autonSelection = autonSelect::off;
+
+static const char *btnmMap[] = {"opSide", "allySide", ""};
+
+
+static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) {
+	if (lv_obj_get_free_num(btnm) == 100) { // reds
+		if (txt == "opSide") autonSelection = autonSelect::opSide;
+		else if (txt == "allySide") autonSelection = autonSelect::allySide;
+	}
+
+	masterController.rumble("..");
+	return LV_RES_OK; // return OK because the button matrix is not deleted
+}
+
+
+static lv_res_t skillsBtnAction(lv_obj_t *btn) {
+	masterController.rumble("..");
+	autonSelection = autonSelect::skills;
+	return LV_RES_OK;
+}
+
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
+
 void initialize()
 {
+
+	// lvgl theme
+	lv_theme_t *th = lv_theme_alien_init(360, NULL); //Set a HUE value and keep font default RED
+	lv_theme_set_current(th);
+
+	// create a tab view object
+	std::cout << pros::millis() << ": creating gui..." << std::endl;
+	lv_obj_t *tabview = lv_tabview_create(lv_scr_act(), NULL);
+
+	// add 4 tabs (the tabs are page (lv_page) and can be scrolled
+	lv_obj_t *mainTab = lv_tabview_add_tab(tabview, "Autons");
+	lv_obj_t *skillsTab = lv_tabview_add_tab(tabview, "Skills");
+	lv_obj_t *telemetryTab = lv_tabview_add_tab(tabview, "Telemetry");
+
+	// main tab
+	lv_obj_t *mainBtnm = lv_btnm_create(mainTab, NULL);
+	lv_btnm_set_map(mainBtnm, btnmMap);
+	lv_btnm_set_action(mainBtnm, autonBtnmAction);
+	lv_obj_set_size(mainBtnm, 450, 50);
+	lv_btnm_set_toggle(mainBtnm, true, 3);
+	lv_obj_set_pos(mainBtnm, 0, 100);
+	lv_obj_align(mainBtnm, NULL, LV_ALIGN_CENTER, 0, 0);
+	lv_obj_set_free_num(mainBtnm, 100);
+
+	
+
+	// skills tab
+	lv_obj_t *skillsBtn = lv_btn_create(skillsTab, NULL);
+	lv_obj_t *label = lv_label_create(skillsBtn, NULL);
+	lv_label_set_text(label, "Skills");
+	lv_btn_set_action(skillsBtn, LV_BTN_ACTION_CLICK, skillsBtnAction);
+	lv_obj_set_size(skillsBtn, 450, 50);
+	lv_btnm_set_toggle(skillsBtn, true, 1);
+	lv_obj_set_pos(skillsBtn, 0, 100);
+	lv_obj_align(skillsBtn, NULL, LV_ALIGN_CENTER, 0, 0);
+	lv_obj_set_free_num(skillsBtn, 102);
+
+	// debug
+	lv_obj_t *msgBox = lv_mbox_create(telemetryTab, NULL);
+	lv_mbox_set_text(msgBox, "rick from r");
+	lv_obj_align(msgBox, NULL, LV_ALIGN_CENTER, 0, 20);
+	lv_mbox_set_anim_time(msgBox, 300);
+	lv_mbox_start_auto_close(msgBox, 2000);
+
+	std::cout << pros::millis() << ": finished creating gui!" << std::endl;
+
+	// log motor temps
+	std::cout << pros::millis() << "\n" << pros::millis() << ": motor temps:" << std::endl;
+	std::cout << pros::millis() << ": lift: " << wings.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": tray: " << puncher.getTemperature() << std::endl;
 }
 
 void stopAll()
@@ -49,7 +130,8 @@ void stopAll()
  * the VEX Competition Switch, following either autonomous or opcontrol. When
  * the robot is enabled, this task will exit.
  */
-void disabled() {
+void disabled()
+{
 	stopAll();
 }
 
@@ -78,43 +160,47 @@ void competition_initialize() {}
 void autonomous()
 {
 
+	switch (autonSelection)
+	{
+	case autonSelect::opSide:
+		// opponent goalside auton
+		// diagram.red & digram.green lines
+		chassis->driveToPoint({-2_ft, 1.7_ft});
+		chassis->driveToPoint({-2_ft, 1_ft});
+		chassis->driveToPoint({-2_ft, 2_ft});
 
-	//opponent goalside auton
-	//diagram.red & digram.green lines
-	chassis->driveToPoint({-2_ft, 1.7_ft});
-	chassis->driveToPoint({-2_ft, 1_ft});
-	chassis->driveToPoint({-2_ft, 2_ft});
+		// diagram.blue & diagram.white extended lines
+		chassis->driveToPoint({-2_ft, 1.2_ft});
+		chassis->turnAngle(90_deg);
+		wings.moveAbsolute(1000, 200);
+		pros::delay(500);
 
-	//diagram.blue & diagram.white extended lines
-	chassis->driveToPoint({-2_ft, 1.2_ft});
-	chassis->turnAngle(90_deg);
-	wings.moveAbsolute(1000, 200);
-	delay(500);
+		// diagram.lightBlue & diagram.white retracted lines
+		chassis->driveToPoint({0_ft, .8_ft});
+		wings.moveAbsolute(-1000, 200);
+		chassis->driveToPoint({-.2_ft, .8_ft});
 
-	//diagram.lightBlue & diagram.white retracted lines
-	chassis->driveToPoint({0_ft, .8_ft});
-	wings.moveAbsolute(-1000,200);
-	chassis->driveToPoint({-.2_ft, .8_ft});
+		// diagram.pink line
+		chassis->driveToPoint({1.4_ft, .5_ft});
+		// opponent goalside auton end
+		break;
 
-	//diagram.pink line
-	chassis->driveToPoint({1.4_ft, .5_ft});
-	//opponent goalside auton end
+	case autonSelect::allySide:
+		// ally goalside auton
+		// push ball infornt into goal
+		chassis->driveToPoint({0_ft, 6_ft});
 
+		// rotate and extend wings
+		// extend wings
+		wings.moveAbsolute(1000, 200);
+		pros::delay(500);
 
+		chassis->turnAngle(90_deg);
+		// ally goalside auton end
 
-	// ally goalside auton
-	// push ball infornt into goal
-	chassis->driveToPoint({0_ft, 6_ft});
-
-
-	// rotate and extend wings
-	//extend wings
-	wings.moveAbsolute(1000, 200);
-	delay(500);
-	
-
-	chassis->turnAngle(90_deg);
-	//ally goalside auton end
+	default:
+		break;
+	}
 
 	// Stop all motors
 	stopAll();
