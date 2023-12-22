@@ -99,10 +99,18 @@ void opcontrol()
 		chassis->getModel()->tank(masterController.getAnalog(okapi::ControllerAnalog::leftY),
 								masterController.getAnalog(okapi::ControllerAnalog::rightY));
 
-		if(wingsOut.isPressed()){
-			wingflaps.move(127);
-		} else{
-			wingflaps.move(0);
+		//if wingsout is pressed then move the wings ,else wings motor is set to 0
+		if (wingsOut.isPressed())
+		{
+			wings.moveVoltage(12000);
+		}
+		else if (wingsIn.isPressed())
+		{
+			wings.moveVoltage(-12000);
+		}
+		else
+		{
+			wings.moveVoltage(0);
 		}
 
 		pros::delay(20);
