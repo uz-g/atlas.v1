@@ -16,6 +16,7 @@ okapi::ControllerButton wingsOut(okapi::ControllerDigital::R1);
 okapi::ControllerButton wingsIn(okapi::ControllerDigital::R2);
 okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
 okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
+okapi::ControllerButton chassisWingsFront(okapi::ControllerDigital::X);
 
 bool puncherToggled = false;
 bool chassisWingsForward = true;
@@ -23,7 +24,7 @@ bool chassisWingsForward = true;
 // chassis
 
 auto chassis = okapi::ChassisControllerBuilder()
-				   .withMotors({LEFT_MTR2, LEFT_MTR1, LEFT_MTR3}, {-RIGHT_MTR2, -RIGHT_MTR1, -RIGHT_MTR3})
+				   .withMotors({LEFT_MTR1, LEFT_MTR2, LEFT_MTR3}, {-RIGHT_MTR1, -RIGHT_MTR2, -RIGHT_MTR3})
 				   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 16_in}, imev5GreenTPR})
 				   .withOdometry()
 				   .buildOdometry();
@@ -59,6 +60,31 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn)
 	masterController.rumble("..");
 	autonSelection = autonSelect::skills;
 	return LV_RES_OK;
+}
+
+void activateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold)
+{
+	wingsMotor.moveVoltage(voltage);
+
+	// Wait until the wings motor slows down
+	while (std::abs(wingsMotor.getActualVelocity()) > slowDownThreshold)
+	{
+		pros::delay(20);
+	}
+
+	// Stop the wings motor
+	wingsMotor.moveVoltage(0);
+}
+
+void deactivateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold)
+{
+	wingsMotor.moveVoltage(voltage); // move wings motor
+	// Wait until the wings motor slows down
+	while (std::abs(wingsMotor.getActualVelocity()) > slowDownThreshold)
+	{
+		pros::delay(20);
+	}
+	wingsMotor.moveVoltage(0); // stop wings motor
 }
 
 /**
@@ -231,37 +257,38 @@ void opcontrol()
 
 	while (true)
 	{
-		if (chassisWingsForward)
+		if (chassisWingsFront.changedToPressed())
 		{
-			auto chassis = okapi::ChassisControllerBuilder()
-							   .withMotors({LEFT_MTR2, LEFT_MTR1, LEFT_MTR3}, {-RIGHT_MTR2, -RIGHT_MTR1, -RIGHT_MTR3})
-							   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 16_in}, imev5GreenTPR})
-							   .withOdometry()
-							   .buildOdometry();
+			chassisWingsForward = !chassisWingsForward;
 		}
-		else if (!chassisWingsForward)
+
+		// Get joystick values
+		int leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
+		int rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
+
+		// Reverse controls if needed
+		if (!chassisWingsForward)
 		{
-			auto chassis = okapi::ChassisControllerBuilder()
-							   .withMotors({-LEFT_MTR2, -LEFT_MTR1, -LEFT_MTR3}, {RIGHT_MTR2, RIGHT_MTR1, RIGHT_MTR3})
-							   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 16_in}, imev5GreenTPR})
-							   .withOdometry()
-							   .buildOdometry();
+			leftJoystick = -leftJoystick;
+			rightJoystick = -rightJoystick;
 		}
-		chassis->getModel()->tank(masterController.getAnalog(okapi::ControllerAnalog::leftY),
-								  masterController.getAnalog(okapi::ControllerAnalog::rightY));
+
+		// Pass joystick values to tank method
+		chassis->getModel()->tank(leftJoystick, rightJoystick);
 		// chassis is set to coast mode -> motors dont forcefully stop, they coast
 
 		// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
 		// coasts to a stop
+
 		if (wingsOut.isPressed())
 		{
 			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-			wings.moveVoltage(12000);
+			activateWings(wings, 12000, 70);
 		}
 		else if (wingsIn.isPressed())
 		{
 			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-			wings.moveVoltage(-12000);
+			deactivateWings(wings, -12000, 70);
 		}
 		else
 		{
