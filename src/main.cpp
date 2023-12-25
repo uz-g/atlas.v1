@@ -5,10 +5,11 @@
 using namespace okapi;
 using namespace pros;
 
+//create the wing and puncher motors
 okapi::Motor wings(WINGS, true, okapi::AbstractMotor::gearset::green,
 				   okapi::AbstractMotor::encoderUnits::counts);
 
-okapi::Motor puncher(PUNCHER, true, okapi::AbstractMotor::gearset::green,
+okapi::Motor puncher(PUNCHER, true, okapi::AbstractMotor::gearset::red,
 					 okapi::AbstractMotor::encoderUnits::counts);
 
 okapi::Controller masterController;
@@ -18,11 +19,14 @@ okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
 okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
 okapi::ControllerButton chassisWingsFront(okapi::ControllerDigital::X);
 
-bool puncherToggled = false;
-bool chassisWingsForward = true;
+bool puncherToggled = false; //for the puncher toggle button, allows for
+							 //the puncher to be toggled on and off
+bool chassisWingsForward; //for the chassis wings front button, allows for
+						//the driver controls to be reversed
 
 // chassis
 
+// create the chassis object/motors with the correct wheels and gearset
 auto chassis = okapi::ChassisControllerBuilder()
 				   .withMotors({LEFT_MTR1, LEFT_MTR2, LEFT_MTR3}, {-RIGHT_MTR1, -RIGHT_MTR2, -RIGHT_MTR3})
 				   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 16_in}, imev5GreenTPR})
@@ -39,9 +43,9 @@ enum class autonSelect
 
 autonSelect autonSelection = autonSelect::off;
 
-static const char *btnmMap[] = {"opSide", "allySide", ""};
+static const char *btnmMap[] = {"opSide", "allySide", ""}; // button matrix map for auton selection
 
-static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt)
+static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) // button matrix action for auton selection
 {
 	if (lv_obj_get_free_num(btnm) == 100)
 	{ // reds
@@ -55,14 +59,16 @@ static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt)
 	return LV_RES_OK; // return OK because the button matrix is not deleted
 }
 
-static lv_res_t skillsBtnAction(lv_obj_t *btn)
+static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton selection
 {
 	masterController.rumble("..");
 	autonSelection = autonSelect::skills;
 	return LV_RES_OK;
 }
 
-void activateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold)
+// activate wings function designed for minimalgear slip and motor burnout
+
+void activateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold) 
 {
 	wingsMotor.moveVoltage(voltage);
 
@@ -76,6 +82,8 @@ void activateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold)
 	wingsMotor.moveVoltage(0);
 }
 
+
+// deactivate wings function designed for minimal gear slip and motor burnout
 void deactivateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold)
 {
 	wingsMotor.moveVoltage(voltage); // move wings motor
@@ -94,7 +102,7 @@ void deactivateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshol
  * to keep execution time for this mode under a few seconds.
  */
 
-void initialize()
+void initialize() // initialize function GIU mainly
 {
 
 	// lvgl theme
@@ -147,11 +155,12 @@ void initialize()
 	std::cout << pros::millis() << ": tray: " << puncher.getTemperature() << std::endl;
 }
 
-void stopAll()
+void stopAll() //stops everything
 {
 	chassis->stop();
 	wings.moveVoltage(0);
 	puncher.moveVoltage(0);
+	chassisWingsForward = true;
 }
 
 /**
@@ -254,6 +263,7 @@ void opcontrol()
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	chassis->setMaxVelocity(200);
 	float joystickAvg = 0;
+	chassisWingsForward = true;
 
 	while (true)
 	{
