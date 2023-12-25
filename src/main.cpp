@@ -18,6 +18,7 @@ okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
 okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
 
 bool puncherToggled = false;
+bool chassisWingsForward = true;
 
 // chassis
 
@@ -186,7 +187,7 @@ void autonomous()
 		wings.moveAbsolute(1000, 200);
 		pros::delay(500);
 
-		// diagram.lightBlue & diagram.white lines: move forward to push the 
+		// diagram.lightBlue & diagram.white lines: move forward to push the
 		// matchload ball and retract the wings while moving backwards
 		chassis->driveToPoint({0_ft, .8_ft});
 		wings.moveAbsolute(0, 200);
@@ -230,6 +231,22 @@ void opcontrol()
 
 	while (true)
 	{
+		if (chassisWingsForward)
+		{
+			auto chassis = okapi::ChassisControllerBuilder()
+							   .withMotors({LEFT_MTR2, LEFT_MTR1, LEFT_MTR3}, {-RIGHT_MTR2, -RIGHT_MTR1, -RIGHT_MTR3})
+							   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 16_in}, imev5GreenTPR})
+							   .withOdometry()
+							   .buildOdometry();
+		}
+		else if (!chassisWingsForward)
+		{
+			auto chassis = okapi::ChassisControllerBuilder()
+							   .withMotors({-LEFT_MTR2, -LEFT_MTR1, -LEFT_MTR3}, {RIGHT_MTR2, RIGHT_MTR1, RIGHT_MTR3})
+							   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 16_in}, imev5GreenTPR})
+							   .withOdometry()
+							   .buildOdometry();
+		}
 		chassis->getModel()->tank(masterController.getAnalog(okapi::ControllerAnalog::leftY),
 								  masterController.getAnalog(okapi::ControllerAnalog::rightY));
 		// chassis is set to coast mode -> motors dont forcefully stop, they coast
