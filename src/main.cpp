@@ -39,19 +39,22 @@ autonSelect autonSelection = autonSelect::off;
 
 static const char *btnmMap[] = {"opSide", "allySide", ""};
 
-
-static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) {
-	if (lv_obj_get_free_num(btnm) == 100) { // reds
-		if (txt == "opSide") autonSelection = autonSelect::opSide;
-		else if (txt == "allySide") autonSelection = autonSelect::allySide;
+static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt)
+{
+	if (lv_obj_get_free_num(btnm) == 100)
+	{ // reds
+		if (txt == "opSide")
+			autonSelection = autonSelect::opSide;
+		else if (txt == "allySide")
+			autonSelection = autonSelect::allySide;
 	}
 
 	masterController.rumble("..");
 	return LV_RES_OK; // return OK because the button matrix is not deleted
 }
 
-
-static lv_res_t skillsBtnAction(lv_obj_t *btn) {
+static lv_res_t skillsBtnAction(lv_obj_t *btn)
+{
 	masterController.rumble("..");
 	autonSelection = autonSelect::skills;
 	return LV_RES_OK;
@@ -68,7 +71,7 @@ void initialize()
 {
 
 	// lvgl theme
-	lv_theme_t *th = lv_theme_alien_init(360, NULL); //Set a HUE value and keep font default RED
+	lv_theme_t *th = lv_theme_alien_init(360, NULL); // Set a HUE value and keep font default RED
 	lv_theme_set_current(th);
 
 	// create a tab view object
@@ -89,8 +92,6 @@ void initialize()
 	lv_obj_set_pos(mainBtnm, 0, 100);
 	lv_obj_align(mainBtnm, NULL, LV_ALIGN_CENTER, 0, 0);
 	lv_obj_set_free_num(mainBtnm, 100);
-
-	
 
 	// skills tab
 	lv_obj_t *skillsBtn = lv_btn_create(skillsTab, NULL);
@@ -113,7 +114,8 @@ void initialize()
 	std::cout << pros::millis() << ": finished creating gui!" << std::endl;
 
 	// log motor temps
-	std::cout << pros::millis() << "\n" << pros::millis() << ": motor temps:" << std::endl;
+	std::cout << pros::millis() << "\n"
+			  << pros::millis() << ": motor temps:" << std::endl;
 	std::cout << pros::millis() << ": lift: " << wings.getTemperature() << std::endl;
 	std::cout << pros::millis() << ": tray: " << puncher.getTemperature() << std::endl;
 }
@@ -164,29 +166,42 @@ void autonomous()
 	{
 	case autonSelect::opSide:
 		// opponent goalside auton
-		// diagram.red & digram.green lines
+		chassis->setState({0_ft, 0_ft, 0_deg});
+
+		// diagram.red & digram.green lines: push the ball that starts infront of the
+		// robot to the goal -> go back and hit the ball with more force into the goal
 		chassis->driveToPoint({-2_ft, 1.7_ft});
 		chassis->driveToPoint({-2_ft, 1_ft});
 		chassis->driveToPoint({-2_ft, 2_ft});
+		chassis->turnToPoint({-2_ft, 2_ft});
 
-		// diagram.blue & diagram.white extended lines
+		// set chassis state to -2,2
+		chassis->setState({-2_ft, 2_ft, 0_deg});
+		// this is already where the program thinks the robot is
+		// this is for when im testing
+
+		// diagram.blue & diagram.white lines: move back -> rotate -> open wings
 		chassis->driveToPoint({-2_ft, 1.2_ft});
 		chassis->turnAngle(90_deg);
 		wings.moveAbsolute(1000, 200);
 		pros::delay(500);
 
-		// diagram.lightBlue & diagram.white retracted lines
+		// diagram.lightBlue & diagram.white lines: move forward to push the 
+		// matchload ball and retract the wings while moving backwards
 		chassis->driveToPoint({0_ft, .8_ft});
 		wings.moveAbsolute(0, 200);
 		chassis->driveToPoint({-.2_ft, .8_ft});
 
-		// diagram.pink line
+		// diagram.pink line: push the matchload ball and the one under the
+		// hang bar to my zone
 		chassis->driveToPoint({1.4_ft, .5_ft});
 		// opponent goalside auton end
 		break;
 
 	case autonSelect::allySide:
 		// ally goalside auton
+		chassis->setState({0_ft, 0_ft, 0_deg});
+
 		// push ball infornt into goal
 		chassis->driveToPoint({0_ft, 6_ft});
 
