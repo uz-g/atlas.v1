@@ -17,11 +17,11 @@ okapi::ControllerButton wingsOut(okapi::ControllerDigital::R1);
 okapi::ControllerButton wingsIn(okapi::ControllerDigital::R2);
 okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
 okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
-okapi::ControllerButton chassisWingsFront(okapi::ControllerDigital::X);
+okapi::ControllerButton reverseButton(okapi::ControllerDigital::X);
 
 bool puncherToggled = false; // for the puncher toggle button, allows for
 							 // the puncher to be toggled on and off
-bool reverse;				 // for the chassis wings front button, allows for
+bool reverseFlag;			 // for the chassis wings front button, allows for
 							 // the driver controls to be reversed
 
 // chassis
@@ -159,7 +159,7 @@ void stopAll() // stops everything
 	chassis->stop();
 	wings.moveVoltage(0);
 	puncher.moveVoltage(0);
-	reverse = true;
+	reverseFlag = true;
 }
 
 /**
@@ -306,33 +306,33 @@ void autonomous()
 
 void opcontrol()
 {
-	chassis->stop();
+	// chassis is set to coast mode -> motors dont forcefully stop, they coast
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	chassis->setMaxVelocity(200);
-	float joystickAvg = 0;
-	reverse = true;
+	chassis->stop();			  // stop robot
+	chassis->setMaxVelocity(200); // max velocity of 200 just in case
+	float joystickAvg = 0;		  // average of the two joysticks is reset
+	reverseFlag = true;			  // forward on joysticks -> wings are in the front
 
 	while (true)
 	{
-		if (chassisWingsFront.changedToPressed())
+		if (reverseButton.changedToPressed()) // reverse flag toggle if button is pressed
 		{
-			reverse = !reverse;
+			reverseFlag = !reverseFlag;
 		}
 
-		// Get joystick values
+		// Get joystick values so that they can be manipulated for reversal
 		int leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
 		int rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
 
 		// Reverse controls if needed
-		if (!reverse)
+		if (!reverseFlag)
 		{
 			leftJoystick = -leftJoystick;
 			rightJoystick = -rightJoystick;
 		}
 
-		// Pass joystick values to tank method
+		// Pass the manipulated joystick values to tank drive thing
 		chassis->getModel()->tank(leftJoystick, rightJoystick);
-		// chassis is set to coast mode -> motors dont forcefully stop, they coast
 
 		// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
 		// coasts to a stop
