@@ -21,8 +21,8 @@ okapi::ControllerButton chassisWingsFront(okapi::ControllerDigital::X);
 
 bool puncherToggled = false; // for the puncher toggle button, allows for
 							 // the puncher to be toggled on and off
-bool chassisWingsForward; // for the chassis wings front button, allows for
-						  // the driver controls to be reversed
+bool chassisWingsForward;	 // for the chassis wings front button, allows for
+							 // the driver controls to be reversed
 
 // chassis
 
@@ -230,18 +230,29 @@ void autonomous()
 
 	case autonSelect::allySide:
 		// ally goalside auton
-		chassis->setState({-2_ft, 0_ft, 0_deg});
+		chassis->setState({8_ft, 0_ft, 0_deg});
 
-		//take the ball out of the matchload zone [no code for this yet]
+		// take the ball out of the matchload zone [no code for this yet]
+		chassis->driveToPoint({9_ft, 1_ft});
+		chassis->driveToPoint({9.5_ft, 1_ft}); // drive next to matchload zone
+
+		chassis->turnToAngle(90_deg);	 // rotate
+		activateWings(wings, 12000, 70); // open wings
+
+		chassis->driveToPoint({7_ft, 1_ft}); // go back to take the ball out of the matchload zone
+
+		chassis->setState({7_ft, 1_ft, 0_deg}); // change this to where ever the robot ends up while testing
+		deactivateWings(wings, -12000, 70);		// close wings
 
 		// push ball infornt into goal
-		chassis->driveToPoint({-2_ft, 5.3_ft});
+		chassis->driveToPoint({8_ft, 4_ft});
+		chassis->driveToPoint({7_ft, 4.8_ft});
 
 		// rotate and extend wings
 		// extend wings
 		activateWings(wings, 12000, 70);
 
-		chassis->turnAngle(90_deg);
+		chassis->turnToAngle(90_deg);
 		// ally goalside auton end
 
 	case autonSelect::skills:
@@ -280,12 +291,10 @@ void autonomous()
 		chassis->driveToPoint({9.5_ft, 2_ft});
 		chassis->setState({9.5_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testing
 
-		//go to left side of goal and push balls in
+		// go to left side of goal and push balls in
 		chassis->driveToPoint({7_ft, 2_ft});
 		chassis->driveToPoint({8_ft, 7.7_ft});
 		chassis->driveToPoint({10_ft, 8_ft});
-
-
 
 	default:
 		break;
