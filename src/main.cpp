@@ -201,22 +201,22 @@ void autonomous()
 	{
 	case autonSelect::opSide:
 		// opponent goalside auton
-		chassis->setState({0_ft, 0_ft, 0_deg});
+		chassis->setState({2_ft, 0_ft, 0_deg});
 
 		// diagram.red & digram.green lines: push the ball that starts infront of the
 		// robot to the goal -> go back and hit the ball with more force into the goal
-		chassis->driveToPoint({-2_ft, 1.7_ft});
-		chassis->driveToPoint({-2_ft, 1_ft});
-		chassis->driveToPoint({-2_ft, 2_ft});
-		chassis->turnToPoint({-2_ft, 2_ft});
+		chassis->driveToPoint({0_ft, 1.7_ft});
+		chassis->driveToPoint({0_ft, 1_ft});
+		chassis->driveToPoint({0_ft, 2_ft});
+		chassis->turnToPoint({0_ft, 2_ft});
 
 		// set chassis state to -2,2
-		chassis->setState({-2_ft, 2_ft, 0_deg});
+		chassis->setState({0_ft, 2_ft, 0_deg});
 		// this is already where the program thinks the robot is
 		// this is for when im testing
 
 		// diagram.blue & diagram.white lines: move back -> rotate -> open wings
-		chassis->driveToPoint({-2_ft, 1.2_ft});
+		chassis->driveToPoint({0_ft, 1.2_ft});
 		chassis->turnAngle(90_deg);
 		wings.moveAbsolute(1000, 200);
 		pros::delay(500);
@@ -225,17 +225,17 @@ void autonomous()
 		// matchload ball and retract the wings while moving backwards
 		chassis->driveToPoint({0_ft, .8_ft});
 		wings.moveAbsolute(0, 200);
-		chassis->driveToPoint({-.2_ft, .8_ft});
+		chassis->driveToPoint({1.8_ft, .8_ft});
 
 		// diagram.pink line: push the matchload ball and the one under the
 		// hang bar to my zone
-		chassis->driveToPoint({1.4_ft, .5_ft});
+		chassis->driveToPoint({3.4_ft, .5_ft});
 		// opponent goalside auton end
 		break;
 
 	case autonSelect::allySide:
 		// ally goalside auton
-		chassis->setState({0_ft, 0_ft, 0_deg});
+		chassis->setState({2_ft, 0_ft, 0_deg});
 
 		// push ball infornt into goal
 		chassis->driveToPoint({0_ft, 6_ft});
@@ -249,20 +249,19 @@ void autonomous()
 		// ally goalside auton end
 
 	case autonSelect::skills:
-		chassis->setState({0_ft, 0_ft, 0_deg});
+		chassis->setState({2_ft, 0_ft, 0_deg});
 
 		// diagram.red & digram.green lines: push the ball that starts infront of the
 		// robot to the goal -> go back and hit the ball with more force into the goal
-		chassis->driveToPoint({-2_ft, 1.7_ft});
-		chassis->driveToPoint({-2_ft, 1_ft});
-		chassis->driveToPoint({-2_ft, 2_ft});
-		chassis->turnToPoint({-2_ft, 2_ft});
+		chassis->driveToPoint({0_ft, 1.7_ft});
+		chassis->driveToPoint({0_ft, 1_ft});
+		chassis->driveToPoint({0_ft, 2_ft});
 
-		// set chassis state to -2,2
-		chassis->setState({-2_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testing
+		// set chassis state
+		chassis->setState({0_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testing
 
 		// move to matchload pipe and turn to face offensive zone
-		chassis->driveToPoint({-1_ft, 1_ft});
+		chassis->driveToPoint({1_ft, 1_ft});
 		chassis->turnAngle(45_deg);
 
 		// punch for 35 seconds
@@ -271,26 +270,26 @@ void autonomous()
 		puncher.moveVoltage(0);
 
 		// drive up to the middle pipe and turn to face the goal
-		chassis->driveToPoint({1.3_ft, 5_ft});
+		chassis->driveToPoint({2.3_ft, 5_ft});
 		chassis->turnToAngle(-90_deg);
 
 		// activate wings and drive forward to push the ball into the offensive zone
 		activateWings(wings, 12000, 70);
-		chassis->driveToPoint({7_ft, 5_ft});
+		chassis->driveToPoint({9_ft, 5_ft});
 		deactivateWings(wings, -12000, 70);
-		chassis->setState({7_ft, 5_ft, 0_deg}); // change this to where ever the robot ends up while testing
+		chassis->setState({9_ft, 5_ft, 0_deg}); // change this to where ever the robot ends up while testing
 
 		// go to right side of goal and push balls in
-		chassis->driveToPoint({6_ft, .5_ft});
-		chassis->driveToPoint({7.5_ft, 2_ft});
-		chassis->setState({7.5_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testing
+		chassis->driveToPoint({8_ft, .5_ft});
+		chassis->driveToPoint({9.5_ft, 2_ft});
+		chassis->setState({9.5_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testing
 
 		//go to left side of goal and push balls in
-		chassis->driveToPoint({5_ft, 2_ft});
-		chassis->driveToPoint({6_ft, 7.7_ft});
-		chassis->driveToPoint({8_ft, 8_ft});
+		chassis->driveToPoint({7_ft, 2_ft});
+		chassis->driveToPoint({8_ft, 7.7_ft});
+		chassis->driveToPoint({10_ft, 8_ft});
 
-		
+
 
 	default:
 		break;
