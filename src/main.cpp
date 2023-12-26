@@ -5,7 +5,7 @@
 using namespace okapi;
 using namespace pros;
 
-//create the wing and puncher motors
+// create the wing and puncher motors
 okapi::Motor wings(WINGS, true, okapi::AbstractMotor::gearset::green,
 				   okapi::AbstractMotor::encoderUnits::counts);
 
@@ -19,10 +19,10 @@ okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
 okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
 okapi::ControllerButton chassisWingsFront(okapi::ControllerDigital::X);
 
-bool puncherToggled = false; //for the puncher toggle button, allows for
-							 //the puncher to be toggled on and off
-bool chassisWingsForward; //for the chassis wings front button, allows for
-						//the driver controls to be reversed
+bool puncherToggled = false; // for the puncher toggle button, allows for
+							 // the puncher to be toggled on and off
+bool chassisWingsForward; // for the chassis wings front button, allows for
+						  // the driver controls to be reversed
 
 // chassis
 
@@ -68,7 +68,7 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 
 // activate wings function designed for minimalgear slip and motor burnout
 
-void activateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold) 
+void activateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold)
 {
 	wingsMotor.moveVoltage(voltage);
 
@@ -81,7 +81,6 @@ void activateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold)
 	// Stop the wings motor
 	wingsMotor.moveVoltage(0);
 }
-
 
 // deactivate wings function designed for minimal gear slip and motor burnout
 void deactivateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold)
@@ -155,7 +154,7 @@ void initialize() // initialize function GIU mainly
 	std::cout << pros::millis() << ": tray: " << puncher.getTemperature() << std::endl;
 }
 
-void stopAll() //stops everything
+void stopAll() // stops everything
 {
 	chassis->stop();
 	wings.moveVoltage(0);
@@ -248,6 +247,50 @@ void autonomous()
 
 		chassis->turnAngle(90_deg);
 		// ally goalside auton end
+
+	case autonSelect::skills:
+		chassis->setState({0_ft, 0_ft, 0_deg});
+
+		// diagram.red & digram.green lines: push the ball that starts infront of the
+		// robot to the goal -> go back and hit the ball with more force into the goal
+		chassis->driveToPoint({-2_ft, 1.7_ft});
+		chassis->driveToPoint({-2_ft, 1_ft});
+		chassis->driveToPoint({-2_ft, 2_ft});
+		chassis->turnToPoint({-2_ft, 2_ft});
+
+		// set chassis state to -2,2
+		chassis->setState({-2_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testing
+
+		// move to matchload pipe and turn to face offensive zone
+		chassis->driveToPoint({-1_ft, 1_ft});
+		chassis->turnAngle(45_deg);
+
+		// punch for 35 seconds
+		puncher.moveVoltage(12000);
+		pros::delay(35000);
+		puncher.moveVoltage(0);
+
+		// drive up to the middle pipe and turn to face the goal
+		chassis->driveToPoint({1.3_ft, 5_ft});
+		chassis->turnToAngle(-90_deg);
+
+		// activate wings and drive forward to push the ball into the offensive zone
+		activateWings(wings, 12000, 70);
+		chassis->driveToPoint({7_ft, 5_ft});
+		deactivateWings(wings, -12000, 70);
+		chassis->setState({7_ft, 5_ft, 0_deg}); // change this to where ever the robot ends up while testing
+
+		// go to right side of goal and push balls in
+		chassis->driveToPoint({6_ft, .5_ft});
+		chassis->driveToPoint({7.5_ft, 2_ft});
+		chassis->setState({7.5_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testing
+
+		//go to left side of goal and push balls in
+		chassis->driveToPoint({5_ft, 2_ft});
+		chassis->driveToPoint({6_ft, 7.7_ft});
+		chassis->driveToPoint({8_ft, 8_ft});
+
+		
 
 	default:
 		break;
