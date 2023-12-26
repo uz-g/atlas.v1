@@ -21,7 +21,7 @@ okapi::ControllerButton chassisWingsFront(okapi::ControllerDigital::X);
 
 bool puncherToggled = false; // for the puncher toggle button, allows for
 							 // the puncher to be toggled on and off
-bool chassisWingsForward;	 // for the chassis wings front button, allows for
+bool reverse;				 // for the chassis wings front button, allows for
 							 // the driver controls to be reversed
 
 // chassis
@@ -159,7 +159,7 @@ void stopAll() // stops everything
 	chassis->stop();
 	wings.moveVoltage(0);
 	puncher.moveVoltage(0);
-	chassisWingsForward = true;
+	reverse = true;
 }
 
 /**
@@ -310,13 +310,13 @@ void opcontrol()
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	chassis->setMaxVelocity(200);
 	float joystickAvg = 0;
-	chassisWingsForward = true;
+	reverse = true;
 
 	while (true)
 	{
 		if (chassisWingsFront.changedToPressed())
 		{
-			chassisWingsForward = !chassisWingsForward;
+			reverse = !reverse;
 		}
 
 		// Get joystick values
@@ -324,7 +324,7 @@ void opcontrol()
 		int rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
 
 		// Reverse controls if needed
-		if (!chassisWingsForward)
+		if (!reverse)
 		{
 			leftJoystick = -leftJoystick;
 			rightJoystick = -rightJoystick;
