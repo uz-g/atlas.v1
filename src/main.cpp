@@ -205,45 +205,41 @@ void autonomous()
 
 		// diagram.red & digram.green lines: push the ball that starts infront of the
 		// robot to the goal -> go back and hit the ball with more force into the goal
-		chassis->driveToPoint({0_ft, 1.7_ft});
+		chassis->driveToPoint({.4_ft, 1.7_ft});
 		chassis->driveToPoint({0_ft, 1_ft});
 		chassis->driveToPoint({0_ft, 2_ft});
-		chassis->turnToPoint({0_ft, 2_ft});
 
-		// set chassis state to -2,2
-		chassis->setState({0_ft, 2_ft, 0_deg});
-		// this is already where the program thinks the robot is
-		// this is for when im testing
+		chassis->setState({0_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testin
 
 		// diagram.blue & diagram.white lines: move back -> rotate -> open wings
-		chassis->driveToPoint({0_ft, 1.2_ft});
-		chassis->turnAngle(90_deg);
-		wings.moveAbsolute(1000, 200);
-		pros::delay(500);
+		chassis->driveToPoint({1.2_ft, .9_ft});
+		chassis->turnToAngle(90_deg);
+		activateWings(wings, 12000, 70);
 
 		// diagram.lightBlue & diagram.white lines: move forward to push the
 		// matchload ball and retract the wings while moving backwards
-		chassis->driveToPoint({0_ft, .8_ft});
+		chassis->driveToPoint({2_ft, 1_ft});
 		wings.moveAbsolute(0, 200);
-		chassis->driveToPoint({1.8_ft, .8_ft});
+		chassis->driveToPoint({1.8_ft, 1_ft});
 
 		// diagram.pink line: push the matchload ball and the one under the
 		// hang bar to my zone
-		chassis->driveToPoint({3.4_ft, .5_ft});
+		chassis->driveToPoint({4_ft, 1_ft});
 		// opponent goalside auton end
 		break;
 
 	case autonSelect::allySide:
 		// ally goalside auton
-		chassis->setState({2_ft, 0_ft, 0_deg});
+		chassis->setState({-2_ft, 0_ft, 0_deg});
+
+		//take the ball out of the matchload zone [no code for this yet]
 
 		// push ball infornt into goal
-		chassis->driveToPoint({0_ft, 6_ft});
+		chassis->driveToPoint({-2_ft, 5.3_ft});
 
 		// rotate and extend wings
 		// extend wings
-		wings.moveAbsolute(1000, 200);
-		pros::delay(500);
+		activateWings(wings, 12000, 70);
 
 		chassis->turnAngle(90_deg);
 		// ally goalside auton end
