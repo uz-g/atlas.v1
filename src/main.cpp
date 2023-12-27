@@ -101,6 +101,22 @@ void punchForTime(int time)
 	puncher.moveVoltage(0);
 }
 
+void restartChassis()
+{
+	// chassis is set to coast mode -> motors dont forcefully stop, they coast
+	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	stopAll();					  // stop everything on the robot
+	chassis->setMaxVelocity(200); // max velocity of 200 just in case
+	reverseFlag = true;			  // forward on joysticks -> wings are in the front
+}
+
+void stopAll() // stops everything
+{
+	chassis->stop();
+	wings.moveVoltage(0);
+	puncher.moveVoltage(0);
+}
+
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -159,14 +175,6 @@ void initialize() // initialize the GIU
 			  << pros::millis() << ": motor temps:" << std::endl;
 	std::cout << pros::millis() << ": lift: " << wings.getTemperature() << std::endl;
 	std::cout << pros::millis() << ": tray: " << puncher.getTemperature() << std::endl;
-}
-
-void stopAll() // stops everything
-{
-	chassis->stop();
-	wings.moveVoltage(0);
-	puncher.moveVoltage(0);
-	reverseFlag = true;
 }
 
 /**
@@ -306,17 +314,12 @@ void autonomous()
 	}
 
 	// Stop all motors
-	stopAll();
+	restartChassis();
 }
 
 void opcontrol()
 {
-	// chassis is set to coast mode -> motors dont forcefully stop, they coast
-	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	chassis->stop();			  // stop robot
-	chassis->setMaxVelocity(200); // max velocity of 200 just in case
-	float joystickAvg = 0;		  // average of the two joysticks is reset
-	reverseFlag = true;			  // forward on joysticks -> wings are in the front
+	restartChassis();
 
 	while (true)
 	{
@@ -326,8 +329,8 @@ void opcontrol()
 		}
 
 		// Get joystick values so that they can be manipulated for reversal
-		int leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
-		int rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
+		double leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
+		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
 
 		// Reverse controls if needed
 		if (!reverseFlag)
