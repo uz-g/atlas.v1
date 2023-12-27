@@ -94,6 +94,13 @@ void deactivateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshol
 	wingsMotor.moveVoltage(0); // stop wings motor
 }
 
+void punchForTime(int time)
+{
+	puncher.moveVoltage(12000);
+	pros::delay(time);
+	puncher.moveVoltage(0);
+}
+
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -101,7 +108,7 @@ void deactivateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshol
  * to keep execution time for this mode under a few seconds.
  */
 
-void initialize() // initialize function GIU mainly
+void initialize() // initialize the GIU
 {
 
 	// lvgl theme
@@ -272,9 +279,7 @@ void autonomous()
 		chassis->turnAngle(45_deg);
 
 		// punch for 35 seconds
-		puncher.moveVoltage(12000);
-		pros::delay(35000);
-		puncher.moveVoltage(0);
+		punchForTime(35000);
 
 		// drive up to the middle pipe and turn to face the goal
 		chassis->driveToPoint({2.3_ft, 5_ft});
