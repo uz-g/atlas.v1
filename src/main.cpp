@@ -5,16 +5,18 @@
 using namespace okapi;
 using namespace pros;
 
-// create the wing and puncher motors
+// create the motors
 okapi::Motor wings(WINGS, true, okapi::AbstractMotor::gearset::green,
 				   okapi::AbstractMotor::encoderUnits::counts);
 
 okapi::Motor puncher(PUNCHER, true, okapi::AbstractMotor::gearset::red,
 					 okapi::AbstractMotor::encoderUnits::counts);
 
+// create controller
 okapi::Controller masterController;
-okapi::ControllerButton wingsOut(okapi::ControllerDigital::R1);
-okapi::ControllerButton wingsIn(okapi::ControllerDigital::R2);
+okapi::ControllerButton wingsOutManual(okapi::ControllerDigital::R1);
+okapi::ControllerButton wingsInManual(okapi::ControllerDigital::R2);
+okapi::ControllerButton wingsToggle(okapi::ControllerDigital::B);
 okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
 okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
 okapi::ControllerButton reverseButton(okapi::ControllerDigital::X);
@@ -23,6 +25,9 @@ bool puncherToggled = false; // for the puncher toggle button, allows for
 							 // the puncher to be toggled on and off
 bool reverseFlag;			 // for the chassis wings front button, allows for
 							 // the driver controls to be reversed
+
+bool wingsInFlag = true; // for the wings toggle button, allows for the wings
+						 // to be toggled in and out
 
 // chassis
 
@@ -66,32 +71,42 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 	return LV_RES_OK;
 }
 
-// activate wings function designed for minimalgear slip and motor burnout
+// activate wings function designed for minimal gear slip and motor burnout
 
-void activateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold)
+void activateWings(int voltage, int slowDownThreshold, bool wings_In_Flag)
 {
-	wingsMotor.moveVoltage(voltage);
-
-	// Wait until the wings motor slows down
-	while (std::abs(wingsMotor.getActualVelocity()) > slowDownThreshold)
+	//get the position of wings and if the position is close to 0 then set wingsInFlag to true
+	if (wings.getPosition() < 100)
 	{
-		pros::delay(20);
+		wingsInFlag = true;
+	}
+	else if (wings.getPosition() > 100)
+	{
+		wingsInFlag = false;
+	}
+
+	if (wingsInFlag)
+	{
+		wings.moveVoltage(voltage);
+
+		// Wait until the wings motor slows down
+		while (std::abs(wings.getActualVelocity()) > slowDownThreshold)
+		{
+			pros::delay(20);
+		}
+	} else if (!wingsInFlag)
+	{
+		wings.moveVoltage(-voltage);
+
+		// Wait until the wings motor slows down
+		while (std::abs(wings.getActualVelocity()) > slowDownThreshold)
+		{
+			pros::delay(20);
+		}
 	}
 
 	// Stop the wings motor
-	wingsMotor.moveVoltage(0);
-}
-
-// deactivate wings function designed for minimal gear slip and motor burnout
-void deactivateWings(okapi::Motor &wingsMotor, int voltage, int slowDownThreshold)
-{
-	wingsMotor.moveVoltage(voltage); // move wings motor
-	// Wait until the wings motor slows down
-	while (std::abs(wingsMotor.getActualVelocity()) > slowDownThreshold)
-	{
-		pros::delay(20);
-	}
-	wingsMotor.moveVoltage(0); // stop wings motor
+	wings.moveVoltage(0);
 }
 
 void punchForTime(int time)
@@ -229,7 +244,7 @@ void autonomous()
 		// diagram.blue & diagram.white lines: move back -> rotate -> open wings
 		chassis->driveToPoint({1.2_ft, .9_ft});
 		chassis->turnToAngle(90_deg);
-		activateWings(wings, 12000, 70);
+		activateWings(12000, 70, true);
 
 		// diagram.lightBlue & diagram.white lines: move forward to push the
 		// matchload ball and retract the wings while moving backwards
@@ -252,12 +267,12 @@ void autonomous()
 		chassis->driveToPoint({9.5_ft, 1_ft}); // drive next to matchload zone
 
 		chassis->turnToAngle(90_deg);	 // rotate
-		activateWings(wings, 12000, 70); // open wings
+		activateWings(12000, 70, true); // open wings
 
 		chassis->driveToPoint({7_ft, 1_ft}); // go back to take the ball out of the matchload zone
 
 		chassis->setState({7_ft, 1_ft, 0_deg}); // change this to where ever the robot ends up while testing
-		deactivateWings(wings, -12000, 70);		// close wings
+		activateWings(12000, 70, false);		// close wings
 
 		// push ball infornt into goal
 		chassis->driveToPoint({8_ft, 4_ft});
@@ -265,7 +280,7 @@ void autonomous()
 
 		// rotate and extend wings
 		// extend wings
-		activateWings(wings, 12000, 70);
+		activateWings(12000, 70, true);
 
 		chassis->turnToAngle(90_deg);
 		// ally goalside auton end
@@ -294,9 +309,9 @@ void autonomous()
 		chassis->turnToAngle(-90_deg);
 
 		// activate wings and drive forward to push the ball into the offensive zone
-		activateWings(wings, 12000, 70);
+		activateWings(12000, 70, true);
 		chassis->driveToPoint({9_ft, 5_ft});
-		deactivateWings(wings, -12000, 70);
+		activateWings(12000, 70, false);
 		chassis->setState({9_ft, 5_ft, 0_deg}); // change this to where ever the robot ends up while testing
 
 		// go to right side of goal and push balls in
@@ -345,15 +360,15 @@ void opcontrol()
 		// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
 		// coasts to a stop
 
-		if (wingsOut.isPressed())
+		if (wingsOutManual.isPressed())
 		{
 			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-			activateWings(wings, 12000, 70);
+			activateWings(12000, 70, true);
 		}
-		else if (wingsIn.isPressed())
+		else if (wingsInManual.isPressed())
 		{
 			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-			deactivateWings(wings, -12000, 70);
+			activateWings(12000, 70, false);
 		}
 		else
 		{
