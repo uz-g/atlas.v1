@@ -11,3 +11,6 @@ const int RIGHT_MTR2 = 9;
 const int RIGHT_MTR3 = 10;
 const int WINGS = 6;
 const int PUNCHER = 5;
+
+const int MAX_VOLT = 12000;
+const int DF_SLOW_THRESH = 70;

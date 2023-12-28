@@ -1,9 +1,11 @@
 #include "main.h"
 #include "atlaslib.h"
 #include <fstream>
+#include "okapi/api.hpp"
 
 using namespace okapi;
 using namespace pros;
+using namespace std;
 
 // create the motors
 okapi::Motor wings(WINGS, true, okapi::AbstractMotor::gearset::green,
@@ -102,7 +104,7 @@ void toggleWings(int voltage, int slowDownThreshold)
 		wings.moveVoltage(-voltage);
 
 		// Wait until the wings motor slows down
-		while (std::abs(wings.getActualVelocity()) > slowDownThreshold)
+		while (std::abs(wings.getActualVelocity()) < -slowDownThreshold)
 		{
 			pros::delay(20);
 		}
@@ -129,7 +131,7 @@ void manualWings(int voltage, int slowDownThreshold, bool wingsFlag)
 		wings.moveVoltage(-voltage);
 
 		// Wait until the wings motor slows down
-		while (std::abs(wings.getActualVelocity()) > slowDownThreshold)
+		while (std::abs(wings.getActualVelocity()) < -slowDownThreshold)
 		{
 			pros::delay(20);
 		}
@@ -141,7 +143,7 @@ void manualWings(int voltage, int slowDownThreshold, bool wingsFlag)
 
 void punchForTime(int time)
 {
-	puncher.moveVoltage(12000);
+	puncher.moveVoltage(MAX_VOLT);
 	pros::delay(time);
 	puncher.moveVoltage(0);
 }
@@ -283,7 +285,7 @@ void autonomous()
 		// diagram.blue & diagram.white lines: move back -> rotate -> open wings
 		chassis->driveToPoint({1.2_ft, .9_ft});
 		chassis->turnToAngle(90_deg);
-		toggleWings(12000, 70);
+		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
 
 		// diagram.lightBlue & diagram.white lines: move forward to push the
 		// matchload ball and retract the wings while moving backwards
@@ -306,12 +308,14 @@ void autonomous()
 		chassis->driveToPoint({9.5_ft, 1_ft}); // drive next to matchload zone
 
 		chassis->turnToAngle(90_deg); // rotate
-		toggleWings(12000, 70);		  // open wings
+		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+		// open wings
 
 		chassis->driveToPoint({7_ft, 1_ft}); // go back to take the ball out of the matchload zone
 
 		chassis->setState({7_ft, 1_ft, 0_deg}); // change this to where ever the robot ends up while testing
-		toggleWings(12000, 70);					// close wings
+		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+		// close wings
 
 		// push ball infornt into goal
 		chassis->driveToPoint({8_ft, 4_ft});
@@ -319,7 +323,7 @@ void autonomous()
 
 		// rotate and extend wings
 		// extend wings
-		toggleWings(12000, 70);
+		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
 
 		chassis->turnToAngle(90_deg);
 		// ally goalside auton end
@@ -348,9 +352,11 @@ void autonomous()
 		chassis->turnToAngle(-90_deg);
 
 		// activate wings and drive forward to push the ball into the offensive zone
-		toggleWings(12000, 70);
+		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+
 		chassis->driveToPoint({9_ft, 5_ft});
-		toggleWings(12000, 70);
+		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+
 		chassis->setState({9_ft, 5_ft, 0_deg}); // change this to where ever the robot ends up while testing
 
 		// go to right side of goal and push balls in
@@ -365,7 +371,8 @@ void autonomous()
 
 	case autonStates::testing:
 		chassis->setState({2_ft, 0_ft, 0_deg});
-		toggleWings(12000, 70); // will be testing the rotations and the threshold for this function
+		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+		// will be testing the rotations and the threshold for this function
 
 	default:
 		break;
@@ -410,18 +417,18 @@ void opcontrol()
 		if (wingsToggle.changedToPressed())
 		{
 			wingsInFlag = !wingsInFlag;
-			toggleWings(12000, 70);
+			toggleWings(MAX_VOLT, DF_SLOW_THRESH);
 		}
 
 		if (wingsOutManual.isPressed())
 		{
 			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-			wings.moveVoltage(12000);
+			wings.moveVoltage(MAX_VOLT);
 		}
 		else if (wingsInManual.isPressed())
 		{
 			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-			wings.moveVoltage(-12000);
+			wings.moveVoltage(-MAX_VOLT);
 		}
 		else
 		{
@@ -432,7 +439,7 @@ void opcontrol()
 		if (puncherSingleFire.isPressed())
 		{
 			puncherToggled = false; // Single fire button is pressed, reset toggle state/untoggle puncher
-			puncher.moveVoltage(12000);
+			puncher.moveVoltage(MAX_VOLT);
 		}
 		else if (puncherSingleFire.changedToReleased())
 		{
@@ -454,7 +461,7 @@ void opcontrol()
 
 		if (puncherToggled)
 		{
-			puncher.moveVoltage(12000);
+			puncher.moveVoltage(MAX_VOLT);
 		}
 		else if (!puncherToggled && !puncherSingleFire.isPressed())
 		{
