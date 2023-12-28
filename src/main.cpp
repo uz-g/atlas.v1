@@ -146,7 +146,9 @@ void restartChassis()
 {
 	// chassis is set to coast mode -> motors dont forcefully stop, they coast
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	stopAll();					  // stop everything on the robot
+	chassis->stop();
+	wings.moveVoltage(0);
+	puncher.moveVoltage(0);				  // stop everything on the robot
 	chassis->setMaxVelocity(200); // max velocity of 200 just in case
 	reverseFlag = true;			  // forward on joysticks -> wings are in the front
 }
@@ -157,6 +159,7 @@ void stopAll() // stops everything
 	wings.moveVoltage(0);
 	puncher.moveVoltage(0);
 }
+
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -223,6 +226,8 @@ void initialize() // initialize the GIU
  * the VEX Competition Switch, following either autonomous or opcontrol. When
  * the robot is enabled, this task will exit.
  */
+
+
 void disabled()
 {
 	stopAll();
