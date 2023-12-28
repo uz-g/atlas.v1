@@ -7,10 +7,9 @@ using namespace pros;
 
 // create the motors
 okapi::Motor wings(WINGS, true, okapi::AbstractMotor::gearset::green,
-				   okapi::AbstractMotor::encoderUnits::counts);
-
+				   okapi::AbstractMotor::encoderUnits::rotations);
 okapi::Motor puncher(PUNCHER, true, okapi::AbstractMotor::gearset::red,
-					 okapi::AbstractMotor::encoderUnits::counts);
+					 okapi::AbstractMotor::encoderUnits::rotations);
 
 // create controller
 okapi::Controller masterController;
@@ -76,11 +75,11 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 void toggleWings(int voltage, int slowDownThreshold)
 {
 	// get the position of wings and if the position is close to 0 then set wingsInFlag to true
-	if (wings.getPosition() < 100)
+	if (wings.getPosition() < 10)
 	{
 		wingsInFlag = true;
 	}
-	else if (wings.getPosition() > 100)
+	else if (wings.getPosition() > 10)
 	{
 		wingsInFlag = false;
 	}
