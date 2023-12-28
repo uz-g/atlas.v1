@@ -11,4 +11,3 @@ const int RIGHT_MTR2 = 9;
 const int RIGHT_MTR3 = 10;
 const int WINGS = 6;
 const int PUNCHER = 5;
-
