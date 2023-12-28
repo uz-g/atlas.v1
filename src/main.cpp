@@ -37,7 +37,7 @@ auto chassis = okapi::ChassisControllerBuilder()
 				   .withOdometry()
 				   .buildOdometry();
 
-enum class autonSelect
+enum class autonStates
 {
 	off,
 	opSide,
@@ -45,7 +45,7 @@ enum class autonSelect
 	skills
 };
 
-autonSelect autonSelection = autonSelect::off;
+autonStates autonSelection = autonStates::off;
 
 static const char *btnmMap[] = {"opSide", "allySide", ""}; // button matrix map for auton selection
 
@@ -54,9 +54,9 @@ static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) // button matri
 	if (lv_obj_get_free_num(btnm) == 100)
 	{ // reds
 		if (txt == "opSide")
-			autonSelection = autonSelect::opSide;
+			autonSelection = autonStates::opSide;
 		else if (txt == "allySide")
-			autonSelection = autonSelect::allySide;
+			autonSelection = autonStates::allySide;
 	}
 
 	masterController.rumble("..");
@@ -66,7 +66,7 @@ static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) // button matri
 static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton selection
 {
 	masterController.rumble("..");
-	autonSelection = autonSelect::skills;
+	autonSelection = autonStates::skills;
 	return LV_RES_OK;
 }
 
@@ -146,7 +146,6 @@ void punchForTime(int time)
 void restartChassis()
 {
 	// chassis is set to coast mode -> motors dont forcefully stop, they coast
-	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	chassis->stop();
 	wings.moveVoltage(0);
 	puncher.moveVoltage(0);		  // stop everything on the robot
@@ -256,10 +255,17 @@ void competition_initialize() {}
  */
 void autonomous()
 {
+	restartChassis();
+	chassis->setMaxVelocity(200);
+	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	auto timer = TimeUtilFactory().create().getTimer();
+	timer->placeMark();
 
 	switch (autonSelection)
 	{
-	case autonSelect::opSide:
+	case autonStates::opSide:
 		// opponent goalside auton
 		chassis->setState({2_ft, 0_ft, 0_deg});
 
@@ -288,7 +294,7 @@ void autonomous()
 		// opponent goalside auton end
 		break;
 
-	case autonSelect::allySide:
+	case autonStates::allySide:
 		// ally goalside auton
 		chassis->setState({8_ft, 0_ft, 0_deg});
 
@@ -315,7 +321,7 @@ void autonomous()
 		chassis->turnToAngle(90_deg);
 		// ally goalside auton end
 
-	case autonSelect::skills:
+	case autonStates::skills:
 		chassis->setState({2_ft, 0_ft, 0_deg});
 
 		// diagram.red & digram.green lines: push the ball that starts infront of the
@@ -357,6 +363,7 @@ void autonomous()
 	default:
 		break;
 	}
+	std::cout << pros::millis() << ": auton took " << timer->getDtFromMark().convert(second) << " seconds" << std::endl;
 
 	// Stop all motors
 	restartChassis();
@@ -365,6 +372,9 @@ void autonomous()
 void opcontrol()
 {
 	restartChassis();
+	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 
 	while (true)
 	{
