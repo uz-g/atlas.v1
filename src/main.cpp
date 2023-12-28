@@ -23,7 +23,7 @@ okapi::ControllerButton reverseButton(okapi::ControllerDigital::X);
 
 bool puncherToggled = false; // for the puncher toggle button, allows for
 							 // the puncher to be toggled on and off
-bool reverseFlag;			 // for the chassis wings front button, allows for
+bool reverseFlag = false;			 // for the chassis wings front button, allows for
 							 // the driver controls to be reversed
 
 bool wingsInFlag = true; // for the wings toggle button, allows for the wings
@@ -150,7 +150,7 @@ void restartChassis()
 	wings.moveVoltage(0);
 	puncher.moveVoltage(0);				  // stop everything on the robot
 	chassis->setMaxVelocity(200); // max velocity of 200 just in case
-	reverseFlag = true;			  // forward on joysticks -> wings are in the front
+	reverseFlag = false;			  // forward on joysticks -> wings are in the front
 }
 
 void stopAll() // stops everything
@@ -379,7 +379,7 @@ void opcontrol()
 		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
 
 		// Reverse controls if needed
-		if (!reverseFlag)
+		if (reverseFlag)
 		{
 			leftJoystick = -leftJoystick;
 			rightJoystick = -rightJoystick;
