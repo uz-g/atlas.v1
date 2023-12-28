@@ -76,7 +76,7 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 }
 
 // activate wings function designed for minimal gear slip and motor burnout
-void toggleWings() 
+void toggleWings()
 {
 	// get the position of wings and if the position is close to 0 then set wingsInFlag to true
 	if (wings.getPosition() < 10)
@@ -257,8 +257,8 @@ void initialize() // initialize the GIU
 	// log motor temps
 	std::cout << pros::millis() << "\n"
 			  << pros::millis() << ": motor temps:" << std::endl;
-	std::cout << pros::millis() << ": lift: " << wings.getTemperature() << std::endl;
-	std::cout << pros::millis() << ": tray: " << puncher.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": wings: " << wings.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": puncher: " << puncher.getTemperature() << std::endl;
 }
 
 /**
@@ -303,6 +303,9 @@ void autonomous()
 	wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 	auto timer = TimeUtilFactory().create().getTimer();
 	timer->placeMark();
+
+	if (autonSelection == autonStates::off)
+		autonSelection = autonStates::opSide; // use opside [the better side for us] if we havent selected an auton
 
 	switch (autonSelection)
 	{
