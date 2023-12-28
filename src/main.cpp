@@ -42,12 +42,13 @@ enum class autonStates
 	off,
 	opSide,
 	allySide,
-	skills
+	skills,
+	testing
 };
 
 autonStates autonSelection = autonStates::off;
 
-static const char *btnmMap[] = {"opSide", "allySide", ""}; // button matrix map for auton selection
+static const char *btnmMap[] = {"opSide", "allySide", "testing", ""}; // button matrix map for auton selection
 
 static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) // button matrix action for auton selection
 {
@@ -57,6 +58,8 @@ static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) // button matri
 			autonSelection = autonStates::opSide;
 		else if (txt == "allySide")
 			autonSelection = autonStates::allySide;
+		else if (txt == "testing")
+			autonSelection = autonStates::testing;
 	}
 
 	masterController.rumble("..");
@@ -360,6 +363,10 @@ void autonomous()
 		chassis->driveToPoint({8_ft, 7.7_ft});
 		chassis->driveToPoint({10_ft, 8_ft});
 
+	case autonStates::testing:
+		chassis->setState({2_ft, 0_ft, 0_deg});
+		toggleWings(12000, 70); // will be testing the rotations and the threshold for this function
+
 	default:
 		break;
 	}
@@ -400,15 +407,21 @@ void opcontrol()
 		// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
 		// coasts to a stop
 
+		if (wingsToggle.changedToPressed())
+		{
+			wingsInFlag = !wingsInFlag;
+			toggleWings(12000, 70);
+		}
+
 		if (wingsOutManual.isPressed())
 		{
 			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-			manualWings(12000, 70, true);
+			wings.moveVoltage(12000);
 		}
 		else if (wingsInManual.isPressed())
 		{
 			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-			manualWings(12000, 70, false);
+			wings.moveVoltage(-12000);
 		}
 		else
 		{
