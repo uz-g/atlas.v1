@@ -23,7 +23,7 @@ okapi::ControllerButton reverseButton(okapi::ControllerDigital::X);
 
 bool puncherToggled = false; // for the puncher toggle button, allows for
 							 // the puncher to be toggled on and off
-bool reverseFlag = false;			 // for the chassis wings front button, allows for
+bool reverseFlag = false;	 // for the chassis wings front button, allows for
 							 // the driver controls to be reversed
 
 bool wingsInFlag = true; // for the wings toggle button, allows for the wings
@@ -75,7 +75,7 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 
 void toggleWings(int voltage, int slowDownThreshold)
 {
-	//get the position of wings and if the position is close to 0 then set wingsInFlag to true
+	// get the position of wings and if the position is close to 0 then set wingsInFlag to true
 	if (wings.getPosition() < 100)
 	{
 		wingsInFlag = true;
@@ -94,7 +94,8 @@ void toggleWings(int voltage, int slowDownThreshold)
 		{
 			pros::delay(20);
 		}
-	} else if (!wingsInFlag)
+	}
+	else if (!wingsInFlag)
 	{
 		wings.moveVoltage(-voltage);
 
@@ -120,7 +121,8 @@ void manualWings(int voltage, int slowDownThreshold, bool wingsFlag)
 		{
 			pros::delay(20);
 		}
-	} else if (!wingsFlag)
+	}
+	else if (!wingsFlag)
 	{
 		wings.moveVoltage(-voltage);
 
@@ -148,9 +150,9 @@ void restartChassis()
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	chassis->stop();
 	wings.moveVoltage(0);
-	puncher.moveVoltage(0);				  // stop everything on the robot
+	puncher.moveVoltage(0);		  // stop everything on the robot
 	chassis->setMaxVelocity(200); // max velocity of 200 just in case
-	reverseFlag = false;			  // forward on joysticks -> wings are in the front
+	reverseFlag = false;		  // forward on joysticks -> wings are in the front
 }
 
 void stopAll() // stops everything
@@ -159,7 +161,6 @@ void stopAll() // stops everything
 	wings.moveVoltage(0);
 	puncher.moveVoltage(0);
 }
-
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -226,7 +227,6 @@ void initialize() // initialize the GIU
  * the VEX Competition Switch, following either autonomous or opcontrol. When
  * the robot is enabled, this task will exit.
  */
-
 
 void disabled()
 {
@@ -297,13 +297,13 @@ void autonomous()
 		chassis->driveToPoint({9_ft, 1_ft});
 		chassis->driveToPoint({9.5_ft, 1_ft}); // drive next to matchload zone
 
-		chassis->turnToAngle(90_deg);	 // rotate
-		toggleWings(12000, 70); // open wings
+		chassis->turnToAngle(90_deg); // rotate
+		toggleWings(12000, 70);		  // open wings
 
 		chassis->driveToPoint({7_ft, 1_ft}); // go back to take the ball out of the matchload zone
 
 		chassis->setState({7_ft, 1_ft, 0_deg}); // change this to where ever the robot ends up while testing
-		toggleWings(12000, 70);		// close wings
+		toggleWings(12000, 70);					// close wings
 
 		// push ball infornt into goal
 		chassis->driveToPoint({8_ft, 4_ft});
