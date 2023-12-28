@@ -76,8 +76,7 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 }
 
 // activate wings function designed for minimal gear slip and motor burnout
-
-void toggleWings(int voltage, int slowDownThreshold)
+void toggleWings() 
 {
 	// get the position of wings and if the position is close to 0 then set wingsInFlag to true
 	if (wings.getPosition() < 10)
@@ -85,6 +84,43 @@ void toggleWings(int voltage, int slowDownThreshold)
 		wingsInFlag = true;
 	}
 	else if (wings.getPosition() > 10)
+	{
+		wingsInFlag = false;
+	}
+
+	if (wingsInFlag)
+	{
+		wings.moveVoltage(MAX_VOLT);
+
+		// Wait until the wings motor slows down
+		while (std::abs(wings.getActualVelocity()) > DF_SLOW_THRESH)
+		{
+			pros::delay(20);
+		}
+	}
+	else if (!wingsInFlag)
+	{
+		wings.moveVoltage(-MAX_VOLT);
+
+		// Wait until the wings motor slows down
+		while (std::abs(wings.getActualVelocity()) < -DF_SLOW_THRESH)
+		{
+			pros::delay(20);
+		}
+	}
+
+	// Stop the wings motor
+	wings.moveVoltage(0);
+}
+
+void toggleWings(int voltage, int slowDownThreshold)
+{
+	// get the position of wings and if the position is close to 0 then set wingsInFlag to true
+	if (wings.getPosition() < 5)
+	{
+		wingsInFlag = true;
+	}
+	else if (wings.getPosition() >= 5)
 	{
 		wingsInFlag = false;
 	}
@@ -417,7 +453,7 @@ void opcontrol()
 		if (wingsToggle.changedToPressed())
 		{
 			wingsInFlag = !wingsInFlag;
-			toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+			toggleWings();
 		}
 
 		if (wingsOutManual.isPressed())
