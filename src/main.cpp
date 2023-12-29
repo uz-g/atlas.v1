@@ -27,9 +27,6 @@ bool puncherToggled = false; // for the puncher toggle button, allows for
 bool reverseFlag = false;	 // for the chassis wings front button, allows for
 							 // the driver controls to be reversed
 
-bool wingsInFlag = true; // for the wings toggle button, allows for the wings
-						 // to be toggled in and out
-
 // chassis
 
 // create the chassis object/motors with the correct wheels and gearset
@@ -39,7 +36,7 @@ auto chassis = okapi::ChassisControllerBuilder()
 				   .withOdometry()
 				   .buildOdometry();
 
-enum class autonStates
+enum class autonState
 {
 	off,
 	opSide,
@@ -48,7 +45,7 @@ enum class autonStates
 	testing
 };
 
-autonStates autonSelection = autonStates::off;
+autonState autonSelection = autonState::off;
 
 static const char *btnmMap[] = {"opSide", "allySide", "testing", ""}; // button matrix map for auton selection
 
@@ -57,11 +54,11 @@ static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) // button matri
 	if (lv_obj_get_free_num(btnm) == 100)
 	{ // reds
 		if (txt == "opSide")
-			autonSelection = autonStates::opSide;
+			autonSelection = autonState::opSide;
 		else if (txt == "allySide")
-			autonSelection = autonStates::allySide;
+			autonSelection = autonState::allySide;
 		else if (txt == "testing")
-			autonSelection = autonStates::testing;
+			autonSelection = autonState::testing;
 	}
 
 	masterController.rumble("..");
@@ -71,125 +68,71 @@ static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) // button matri
 static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton selection
 {
 	masterController.rumble("..");
-	autonSelection = autonStates::skills;
+	autonSelection = autonState::skills;
 	return LV_RES_OK;
 }
+
+enum class wingsState
+{
+	retracted,
+	retracting,
+	extended,
+	extending
+};
+
+wingsState wingsCurrentStatus = wingsState::retracted;
 
 // activate wings function designed for minimal gear slip and motor burnout
 void toggleWings()
 {
-	// get the position of wings and if the position is close to 0 then set wingsInFlag to true
-	if (wings.getPosition() < 10)
-	{
-		wingsInFlag = true;
-	}
-	else if (wings.getPosition() > 10)
-	{
-		wingsInFlag = false;
-	}
+	// get the state of wings: 
 
-	if (wingsInFlag)
+	if(wings.getActualVelocity() > 5) //wings are extending
 	{
-		wings.moveVoltage(MAX_VOLT);
-
-		// Wait until the wings motor slows down
-		while (std::abs(wings.getActualVelocity()) > DF_SLOW_THRESH)
-		{
-			pros::delay(20);
-		}
+		wingsCurrentStatus = wingsState::extending;
+	} 
+	else if(wings.getActualVelocity() < -5) //wings are retracting
+	{
+		wingsCurrentStatus = wingsState::retracting;		
 	}
-	else if (!wingsInFlag)
+	else if(wings.getPosition() < 5) //wings are extending already
 	{
-		wings.moveVoltage(-MAX_VOLT);
-
-		// Wait until the wings motor slows down
-		while (std::abs(wings.getActualVelocity()) < -DF_SLOW_THRESH)
-		{
-			pros::delay(20);
-		}
+		wingsCurrentStatus = wingsState::extended;
+	}
+	else if(wings.getPosition() > 5) //wings are retracted already
+	{
+		wingsCurrentStatus = wingsState::retracted;
 	}
 
-	// Stop the wings motor
-	wings.moveVoltage(0);
+	//	act based off of the state of wings [it is important to note that these
+	//	acts are only happening after the toggle button has been pushed]	   :
+	switch (wingsCurrentStatus)
+	{
+	case wingsState::retracted:
+		wings.moveAbsolute(5, 200);
+
+	case wingsState::retracting:
+		wings.moveAbsolute(5, 200);
+
+	case wingsState::extended:
+		wings.moveAbsolute(0, 200);
+
+	case wingsState::extending:
+		wings.moveAbsolute(0, 200);
+	}
 }
 
-void toggleWings(int voltage, int slowDownThreshold)
+void punchForAmount(int amount)
 {
-	// get the position of wings and if the position is close to 0 then set wingsInFlag to true
-	if (wings.getPosition() < 5)
-	{
-		wingsInFlag = true;
-	}
-	else if (wings.getPosition() >= 5)
-	{
-		wingsInFlag = false;
-	}
-
-	if (wingsInFlag)
-	{
-		wings.moveVoltage(voltage);
-
-		// Wait until the wings motor slows down
-		while (std::abs(wings.getActualVelocity()) > slowDownThreshold)
-		{
-			pros::delay(20);
-		}
-	}
-	else if (!wingsInFlag)
-	{
-		wings.moveVoltage(-voltage);
-
-		// Wait until the wings motor slows down
-		while (std::abs(wings.getActualVelocity()) < -slowDownThreshold)
-		{
-			pros::delay(20);
-		}
-	}
-
-	// Stop the wings motor
-	wings.moveVoltage(0);
-}
-
-void manualWings(int voltage, int slowDownThreshold, bool wingsFlag)
-{
-	if (wingsFlag)
-	{
-		wings.moveVoltage(voltage);
-
-		// Wait until the wings motor slows down
-		while (std::abs(wings.getActualVelocity()) > slowDownThreshold)
-		{
-			pros::delay(20);
-		}
-	}
-	else if (!wingsFlag)
-	{
-		wings.moveVoltage(-voltage);
-
-		// Wait until the wings motor slows down
-		while (std::abs(wings.getActualVelocity()) < -slowDownThreshold)
-		{
-			pros::delay(20);
-		}
-	}
-
-	// Stop the wings motor
-	wings.moveVoltage(0);
-}
-
-void punchForTime(int time)
-{
-	puncher.moveVoltage(MAX_VOLT);
-	pros::delay(time);
-	puncher.moveVoltage(0);
+	puncher.moveRelative(amount, 100);
 }
 
 void restartChassis()
 {
 	// chassis is set to coast mode -> motors dont forcefully stop, they coast
 	chassis->stop();
-	wings.moveVoltage(0);
-	puncher.moveVoltage(0);		  // stop everything on the robot
+	wings.moveVelocity(0);
+	puncher.moveVelocity(0);	  // stop everything on the robot
 	chassis->setMaxVelocity(200); // max velocity of 200 just in case
 	reverseFlag = false;		  // forward on joysticks -> wings are in the front
 }
@@ -197,8 +140,8 @@ void restartChassis()
 void stopAll() // stops everything
 {
 	chassis->stop();
-	wings.moveVoltage(0);
-	puncher.moveVoltage(0);
+	wings.moveVelocity(0);
+	puncher.moveVelocity(0);
 }
 
 /**
@@ -304,12 +247,12 @@ void autonomous()
 	auto timer = TimeUtilFactory().create().getTimer();
 	timer->placeMark();
 
-	if (autonSelection == autonStates::off)
-		autonSelection = autonStates::opSide; // use opside [the better side for us] if we havent selected an auton
+	if (autonSelection == autonState::off)
+		autonSelection = autonState::opSide; // use opside [the better side for us] if we havent selected an auton
 
 	switch (autonSelection)
 	{
-	case autonStates::opSide:
+	case autonState::opSide:
 		// opponent goalside auton
 		chassis->setState({2_ft, 0_ft, 0_deg});
 
@@ -324,7 +267,7 @@ void autonomous()
 		// diagram.blue & diagram.white lines: move back -> rotate -> open wings
 		chassis->driveToPoint({1.2_ft, .9_ft});
 		chassis->turnToAngle(90_deg);
-		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+		toggleWings();
 
 		// diagram.lightBlue & diagram.white lines: move forward to push the
 		// matchload ball and retract the wings while moving backwards
@@ -338,7 +281,7 @@ void autonomous()
 		// opponent goalside auton end
 		break;
 
-	case autonStates::allySide:
+	case autonState::allySide:
 		// ally goalside auton
 		chassis->setState({8_ft, 0_ft, 0_deg});
 
@@ -347,13 +290,13 @@ void autonomous()
 		chassis->driveToPoint({9.5_ft, 1_ft}); // drive next to matchload zone
 
 		chassis->turnToAngle(90_deg); // rotate
-		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+		toggleWings();
 		// open wings
 
 		chassis->driveToPoint({7_ft, 1_ft}); // go back to take the ball out of the matchload zone
 
 		chassis->setState({7_ft, 1_ft, 0_deg}); // change this to where ever the robot ends up while testing
-		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+		toggleWings();
 		// close wings
 
 		// push ball infornt into goal
@@ -362,12 +305,12 @@ void autonomous()
 
 		// rotate and extend wings
 		// extend wings
-		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+		toggleWings();
 
 		chassis->turnToAngle(90_deg);
 		// ally goalside auton end
 
-	case autonStates::skills:
+	case autonState::skills:
 		chassis->setState({2_ft, 0_ft, 0_deg});
 
 		// diagram.red & digram.green lines: push the ball that starts infront of the
@@ -384,17 +327,17 @@ void autonomous()
 		chassis->turnAngle(45_deg);
 
 		// punch for 35 seconds
-		punchForTime(35000);
+		punchForAmount(25);
 
 		// drive up to the middle pipe and turn to face the goal
 		chassis->driveToPoint({2.3_ft, 5_ft});
 		chassis->turnToAngle(-90_deg);
 
 		// activate wings and drive forward to push the ball into the offensive zone
-		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+		toggleWings();
 
 		chassis->driveToPoint({9_ft, 5_ft});
-		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+		toggleWings();
 
 		chassis->setState({9_ft, 5_ft, 0_deg}); // change this to where ever the robot ends up while testing
 
@@ -408,9 +351,9 @@ void autonomous()
 		chassis->driveToPoint({8_ft, 7.7_ft});
 		chassis->driveToPoint({10_ft, 8_ft});
 
-	case autonStates::testing:
+	case autonState::testing:
 		chassis->setState({2_ft, 0_ft, 0_deg});
-		toggleWings(MAX_VOLT, DF_SLOW_THRESH);
+		toggleWings();
 		// will be testing the rotations and the threshold for this function
 
 	default:
@@ -455,34 +398,33 @@ void opcontrol()
 
 		if (wingsToggle.changedToPressed())
 		{
-			wingsInFlag = !wingsInFlag;
 			toggleWings();
 		}
 
 		if (wingsOutManual.isPressed())
 		{
 			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-			wings.moveVoltage(MAX_VOLT);
+			wings.moveVelocity(200);
 		}
 		else if (wingsInManual.isPressed())
 		{
 			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-			wings.moveVoltage(-MAX_VOLT);
+			wings.moveVelocity(-200);
 		}
-		else
+		else if (wingsInManual.changedToReleased() || wingsOutManual.changedToReleased())
 		{
-			wings.moveVoltage(0);
+			wings.moveVelocity(0);
 		}
 
 		// single fire pucnher button setup
 		if (puncherSingleFire.isPressed())
 		{
 			puncherToggled = false; // Single fire button is pressed, reset toggle state/untoggle puncher
-			puncher.moveVoltage(MAX_VOLT);
+			puncher.moveVelocity(100);
 		}
 		else if (puncherSingleFire.changedToReleased())
 		{
-			puncher.moveVoltage(0);
+			puncher.moveVelocity(0);
 		}
 
 		// if puncherToggle is pressed then keep the puncher motor on max speed and keep the puncher on coast,
@@ -495,16 +437,17 @@ void opcontrol()
 		else if (puncherToggle.isPressed() && puncherToggled)
 		{
 			puncherToggled = false; // Button is released, reset toggle state
-			puncher.moveVoltage(0);
+			puncher.moveVelocity(0);
 		}
 
 		if (puncherToggled)
 		{
-			puncher.moveVoltage(MAX_VOLT);
+			puncher.moveVelocity(100);
 		}
-		else if (!puncherToggled && !puncherSingleFire.isPressed())
+
+		if (!puncherToggled && !puncherSingleFire.isPressed())
 		{
-			puncher.moveVoltage(0);
+			puncher.moveVelocity(0);
 		}
 
 		pros::delay(20);
