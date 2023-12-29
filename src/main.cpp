@@ -8,15 +8,15 @@ using namespace pros;
 using namespace std;
 
 // create the motors
-okapi::Motor wings(WINGS, true, okapi::AbstractMotor::gearset::green,
-				   okapi::AbstractMotor::encoderUnits::rotations);
+okapi::Motor wings(WINGS, false, okapi::AbstractMotor::gearset::green,
+				   okapi::AbstractMotor::encoderUnits::degrees);
 okapi::Motor puncher(PUNCHER, true, okapi::AbstractMotor::gearset::red,
-					 okapi::AbstractMotor::encoderUnits::rotations);
+					 okapi::AbstractMotor::encoderUnits::degrees);
 
 // create controller
 okapi::Controller masterController;
-okapi::ControllerButton wingsOutManual(okapi::ControllerDigital::R1);
-okapi::ControllerButton wingsInManual(okapi::ControllerDigital::R2);
+okapi::ControllerButton wingsIn(okapi::ControllerDigital::R1);
+okapi::ControllerButton wingsOut(okapi::ControllerDigital::R2);
 okapi::ControllerButton wingsToggle(okapi::ControllerDigital::B);
 okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
 okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
@@ -74,13 +74,13 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 
 enum class wingsState
 {
-	retracted,
-	retracting,
-	extended,
-	extending
+	RETRACTED,
+	RETRACTING,
+	EXTENDED,
+	EXTENDING
 };
 
-wingsState wingsCurrentStatus = wingsState::retracted;
+wingsState wingsCurrentStatus = wingsState::RETRACTED;
 
 // activate wings function designed for minimal gear slip and motor burnout
 void toggleWings()
@@ -89,36 +89,52 @@ void toggleWings()
 
 	if(wings.getActualVelocity() > 5) //wings are extending
 	{
-		wingsCurrentStatus = wingsState::extending;
+		wingsCurrentStatus = wingsState::EXTENDING;
+		printf("wings state: extending\n");
 	} 
 	else if(wings.getActualVelocity() < -5) //wings are retracting
 	{
-		wingsCurrentStatus = wingsState::retracting;		
+		wingsCurrentStatus = wingsState::RETRACTING;
+		printf("wings state: retracting\n");		
 	}
-	else if(wings.getPosition() < 5) //wings are extending already
+	else if(wings.getPosition() < -350) //wings are extended already
 	{
-		wingsCurrentStatus = wingsState::extended;
+		wingsCurrentStatus = wingsState::EXTENDED;
+		printf("wings state: extended\n");
 	}
-	else if(wings.getPosition() > 5) //wings are retracted already
+	else if(wings.getPosition() > -350) //wings are retracted already
 	{
-		wingsCurrentStatus = wingsState::retracted;
-	}
+		wingsCurrentStatus = wingsState::RETRACTED;
+		printf("wings state: retracted\n");
+	} 
+	else {printf("wings state error\n"); return;}
+
 
 	//	act based off of the state of wings [it is important to note that these
 	//	acts are only happening after the toggle button has been pushed]	   :
+	printf("%f", wings.getPosition());
+
 	switch (wingsCurrentStatus)
 	{
-	case wingsState::retracted:
-		wings.moveAbsolute(5, 200);
+	case wingsState::RETRACTED:
+		wings.moveAbsolute(-1120, 200);
+		printf("wings action: was retracted -> is now extending\n");
+		break;
 
-	case wingsState::retracting:
-		wings.moveAbsolute(5, 200);
+	case wingsState::RETRACTING:
+		wings.moveAbsolute(-1120, 200);
+		printf("wings action: was retracting -> is now extending\n");
+		break;
 
-	case wingsState::extended:
+	case wingsState::EXTENDED:
 		wings.moveAbsolute(0, 200);
+		printf("wings action: was extended -> is now retracting\n");
+		break;
 
-	case wingsState::extending:
+	case wingsState::EXTENDING:
 		wings.moveAbsolute(0, 200);
+		printf("wings action: was extending -> is now retracting\n");
+		break;
 	}
 }
 
@@ -155,7 +171,7 @@ void initialize() // initialize the GIU
 {
 
 	// lvgl theme
-	lv_theme_t *th = lv_theme_alien_init(360, NULL); // Set a HUE value and keep font default RED
+	lv_theme_t *th = lv_theme_alien_init(300, NULL); // Set a HUE value and keep font default MAGENTA
 	lv_theme_set_current(th);
 
 	// create a tab view object
@@ -399,21 +415,23 @@ void opcontrol()
 		if (wingsToggle.changedToPressed())
 		{
 			toggleWings();
+			//toggle wings is pushed
 		}
 
-		if (wingsOutManual.isPressed())
+		if (wingsIn.isPressed())
 		{
-			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 			wings.moveVelocity(200);
+			//r1 is pushed
 		}
-		else if (wingsInManual.isPressed())
+		else if (wingsOut.isPressed())
 		{
-			wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 			wings.moveVelocity(-200);
+			//r2 is pushed
 		}
-		else if (wingsInManual.changedToReleased() || wingsOutManual.changedToReleased())
+		else
 		{
 			wings.moveVelocity(0);
+			//printf("\n wings are set to 0 velocity");
 		}
 
 		// single fire pucnher button setup
@@ -450,6 +468,8 @@ void opcontrol()
 			puncher.moveVelocity(0);
 		}
 
+		//printf( "\n wings position: %f"  , wings.getPosition());
 		pros::delay(20);
+		
 	}
 }
