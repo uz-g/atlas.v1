@@ -85,30 +85,33 @@ wingsState wingsCurrentStatus = wingsState::RETRACTED;
 // activate wings function designed for minimal gear slip and motor burnout
 void toggleWings()
 {
-	// get the state of wings: 
+	// get the state of wings:
 
-	if(wings.getActualVelocity() > 5) //wings are extending
+	if (wings.getActualVelocity() > 10) // wings are extending
 	{
 		wingsCurrentStatus = wingsState::EXTENDING;
 		printf("wings state: extending\n");
-	} 
-	else if(wings.getActualVelocity() < -5) //wings are retracting
+	}
+	else if (wings.getActualVelocity() < -10) // wings are retracting
 	{
 		wingsCurrentStatus = wingsState::RETRACTING;
-		printf("wings state: retracting\n");		
+		printf("wings state: retracting\n");
 	}
-	else if(wings.getPosition() < -350) //wings are extended already
+	else if (wings.getPosition() < -350) // wings are extended already
 	{
 		wingsCurrentStatus = wingsState::EXTENDED;
 		printf("wings state: extended\n");
 	}
-	else if(wings.getPosition() > -350) //wings are retracted already
+	else if (wings.getPosition() > -350) // wings are retracted already
 	{
 		wingsCurrentStatus = wingsState::RETRACTED;
 		printf("wings state: retracted\n");
-	} 
-	else {printf("wings state error\n"); return;}
-
+	}
+	else
+	{
+		printf("wings state error\n");
+		return;
+	}
 
 	//	act based off of the state of wings [it is important to note that these
 	//	acts are only happening after the toggle button has been pushed]	   :
@@ -412,26 +415,28 @@ void opcontrol()
 		// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
 		// coasts to a stop
 
-		if (wingsToggle.changedToPressed())
+		if (wingsToggle.isPressed())
 		{
 			toggleWings();
-			//toggle wings is pushed
+			std::cout << "Wings Toggle State: " << wingsToggle.isPressed() << std::endl;
+
+			// toggle wings is pushed
 		}
 
 		if (wingsIn.isPressed())
 		{
 			wings.moveVelocity(200);
-			//r1 is pushed
+			// r1 is pushed
 		}
 		else if (wingsOut.isPressed())
 		{
 			wings.moveVelocity(-200);
-			//r2 is pushed
+			// r2 is pushed
 		}
 		else
 		{
 			wings.moveVelocity(0);
-			//printf("\n wings are set to 0 velocity");
+			// printf("\n wings are set to 0 velocity");
 		}
 
 		// single fire pucnher button setup
@@ -468,8 +473,7 @@ void opcontrol()
 			puncher.moveVelocity(0);
 		}
 
-		//printf( "\n wings position: %f"  , wings.getPosition());
+		// printf( "\n wings position: %f"  , wings.getPosition());
 		pros::delay(20);
-		
 	}
 }
