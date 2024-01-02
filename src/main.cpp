@@ -256,7 +256,7 @@ void autonomous()
 	chassis->setMaxVelocity(200);
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 	puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	auto timer = TimeUtilFactory().create().getTimer();
 	timer->placeMark();
 
@@ -383,7 +383,7 @@ void opcontrol()
 	restartChassis();
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	wings.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 
 	while (true)
 	{
@@ -451,7 +451,7 @@ void opcontrol()
 			puncherToggled = !puncherToggled; // Button was just pressed, toggle the state
 
 			if (!puncherToggled)
-				puncher.moveVelocity(0);
+				puncher.moveVelocity(0); //stop puncher if toggled off
 		}
 
 		if (puncherToggled)
