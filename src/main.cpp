@@ -107,9 +107,8 @@ void toggleWings()
 		wingsCurrentStatus = wingsState::RETRACTED;
 		printf("wings state: retracted\n");
 	}
-	
 
-	//	act based on the state of wings 
+	//	act based on the state of wings
 	printf("%f", wings.getPosition());
 
 	switch (wingsCurrentStatus)
@@ -447,14 +446,12 @@ void opcontrol()
 		// if puncherToggle is pressed then keep the puncher motor on max speed and keep the puncher on coast,
 		// else puncher motor is set to 0 and coasts to a stop
 
-		if (puncherToggle.isPressed() && !puncherToggled)
+		if (puncherToggle.isPressed())
 		{
-			puncherToggled = true; // Button was just pressed, toggle the state
-		}
-		else if (puncherToggle.isPressed() && puncherToggled)
-		{
-			puncherToggled = false; // Button is released, reset toggle state
-			puncher.moveVelocity(0);
+			puncherToggled = !puncherToggled; // Button was just pressed, toggle the state
+
+			if (!puncherToggled)
+				puncher.moveVelocity(0);
 		}
 
 		if (puncherToggled)
@@ -467,7 +464,7 @@ void opcontrol()
 			puncher.moveVelocity(0);
 		}
 
-		//printf( "\n wings position: %f"  , wings.getPosition());
+		// printf( "\n wings position: %f"  , wings.getPosition());
 		pros::delay(20);
 	}
 }

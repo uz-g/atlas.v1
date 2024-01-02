@@ -15,3 +15,17 @@ temp.log
 temp.errors
 *.ini
 .d/
+
+# macOS system directories
+Library/Application Support/CloudDocs/session/db/
+Library/Application Support/com.apple.sharedfilelist/
+Library/Application Support/Knowledge/
+Library/Application Support/com.apple.TCC/
+Library/Application Support/FileProvider/
+Library/Application Support/FaceTime/
+Library/Application Support/com.apple.avfoundation/Frecents/
+Library/Application Support/CallHistoryDB/
+Library/Assistant/SiriVocabulary/
+Library/Daemon Containers/
+Library/Autosave Information/
+Library/IdentityServices/
