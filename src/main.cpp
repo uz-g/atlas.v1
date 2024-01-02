@@ -89,32 +89,27 @@ void toggleWings()
 
 	if (wings.getActualVelocity() > 10) // wings are extending
 	{
-		wingsCurrentStatus = wingsState::EXTENDING;
-		printf("wings state: extending\n");
-	}
-	else if (wings.getActualVelocity() < -10) // wings are retracting
-	{
 		wingsCurrentStatus = wingsState::RETRACTING;
 		printf("wings state: retracting\n");
 	}
-	else if (wings.getPosition() < -350) // wings are extended already
+	else if (wings.getActualVelocity() < -10) // wings are retracting
+	{
+		wingsCurrentStatus = wingsState::EXTENDING;
+		printf("wings state: extending\n");
+	}
+	else if (wings.getPosition() < -360) // wings are extended already
 	{
 		wingsCurrentStatus = wingsState::EXTENDED;
 		printf("wings state: extended\n");
 	}
-	else if (wings.getPosition() > -350) // wings are retracted already
+	else if (wings.getPosition() > -360) // wings are retracted already
 	{
 		wingsCurrentStatus = wingsState::RETRACTED;
 		printf("wings state: retracted\n");
 	}
-	else
-	{
-		printf("wings state error\n");
-		return;
-	}
+	
 
-	//	act based off of the state of wings [it is important to note that these
-	//	acts are only happening after the toggle button has been pushed]	   :
+	//	act based on the state of wings 
 	printf("%f", wings.getPosition());
 
 	switch (wingsCurrentStatus)
@@ -415,11 +410,10 @@ void opcontrol()
 		// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
 		// coasts to a stop
 
-		if (wingsToggle.isPressed())
+		if (wingsToggle.changedToPressed())
 		{
+			printf("\n wings toggle button is pressed");
 			toggleWings();
-			std::cout << "Wings Toggle State: " << wingsToggle.isPressed() << std::endl;
-
 			// toggle wings is pushed
 		}
 
@@ -433,7 +427,7 @@ void opcontrol()
 			wings.moveVelocity(-200);
 			// r2 is pushed
 		}
-		else
+		else if (wingsOut.changedToReleased() || wingsIn.changedToReleased())
 		{
 			wings.moveVelocity(0);
 			// printf("\n wings are set to 0 velocity");
@@ -473,7 +467,7 @@ void opcontrol()
 			puncher.moveVelocity(0);
 		}
 
-		// printf( "\n wings position: %f"  , wings.getPosition());
+		//printf( "\n wings position: %f"  , wings.getPosition());
 		pros::delay(20);
 	}
 }
