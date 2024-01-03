@@ -90,22 +90,22 @@ void toggleWings()
 	if (wings.getActualVelocity() > 10) // wings are extending
 	{
 		wingsCurrentStatus = wingsState::RETRACTING;
-		printf("wings state: retracting\n");
+		// printf("wings state: retracting\n");
 	}
 	else if (wings.getActualVelocity() < -10) // wings are retracting
 	{
 		wingsCurrentStatus = wingsState::EXTENDING;
-		printf("wings state: extending\n");
+		// printf("wings state: extending\n");
 	}
 	else if (wings.getPosition() < -360) // wings are extended already
 	{
 		wingsCurrentStatus = wingsState::EXTENDED;
-		printf("wings state: extended\n");
+		// printf("wings state: extended\n");
 	}
 	else if (wings.getPosition() > -360) // wings are retracted already
 	{
 		wingsCurrentStatus = wingsState::RETRACTED;
-		printf("wings state: retracted\n");
+		// printf("wings state: retracted\n");
 	}
 
 	//	act based on the state of wings
@@ -115,22 +115,22 @@ void toggleWings()
 	{
 	case wingsState::RETRACTED:
 		wings.moveAbsolute(-1120, 200);
-		printf("wings action: was retracted -> is now extending\n");
+		//printf("wings action: was retracted -> is now extending\n");
 		break;
 
 	case wingsState::RETRACTING:
 		wings.moveAbsolute(-1120, 200);
-		printf("wings action: was retracting -> is now extending\n");
+		// printf("wings action: was retracting -> is now extending\n");
 		break;
 
 	case wingsState::EXTENDED:
 		wings.moveAbsolute(0, 200);
-		printf("wings action: was extended -> is now retracting\n");
+		// printf("wings action: was extended -> is now retracting\n");
 		break;
 
 	case wingsState::EXTENDING:
 		wings.moveAbsolute(0, 200);
-		printf("wings action: was extending -> is now retracting\n");
+		// printf("wings action: was extending -> is now retracting\n");
 		break;
 	}
 }
@@ -253,7 +253,6 @@ void competition_initialize() {}
 void autonomous()
 {
 	restartChassis();
-	chassis->setMaxVelocity(200);
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 	puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
