@@ -21,14 +21,17 @@ okapi::ControllerButton wingsToggle(okapi::ControllerDigital::B);
 okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
 okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
 okapi::ControllerButton reverseButton(okapi::ControllerDigital::X);
+okapi::ControllerButton puncherDown(okapi::ControllerDigital::down);
 
 bool puncherToggled = false; // for the puncher toggle button, allows for
 							 // the puncher to be toggled on and off
-bool reverseFlag = false;	 // for the chassis wings front button, allows for
+bool reversed = false;		 // for the chassis wings front button, allows for
 							 // the driver controls to be reversed
 
 bool motorTest = false; // for testing motors
 bool reverseTest = false;
+
+bool puncherIsDown = false;
 
 // chassis
 
@@ -150,7 +153,7 @@ void restartChassis()
 	wings.moveVelocity(0);
 	puncher.moveVelocity(0);	  // stop everything on the robot
 	chassis->setMaxVelocity(200); // max velocity of 200 just in case
-	reverseFlag = false;		  // forward on joysticks -> wings are in the front
+	reversed = false;			  // forward on joysticks -> wings are in the front
 }
 
 void stopAll() // stops everything
@@ -391,7 +394,7 @@ void opcontrol()
 	{
 		if (reverseButton.changedToPressed()) // reverse flag toggle if button is pressed
 		{
-			reverseFlag = !reverseFlag;
+			reversed = !reversed;
 		}
 
 		// Get joystick values so that they can be manipulated for reversal
@@ -399,7 +402,7 @@ void opcontrol()
 		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
 
 		// Reverse controls if needed
-		if (reverseFlag)
+		if (reversed)
 		{
 			leftJoystick = -leftJoystick;
 			rightJoystick = -rightJoystick;
@@ -413,7 +416,7 @@ void opcontrol()
 
 		if (wingsToggle.changedToPressed())
 		{
-			printf("\n wings toggle button is pressed");
+			// printf("\n wings toggle button is pressed");
 			toggleWings();
 			// toggle wings is pushed
 		}
@@ -437,12 +440,9 @@ void opcontrol()
 		// single fire pucnher button setup
 		if (puncherSingleFire.isPressed())
 		{
+			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 			puncherToggled = false; // Single fire button is pressed, reset toggle state/untoggle puncher
 			puncher.moveVelocity(100);
-		}
-		else if (puncherSingleFire.changedToReleased())
-		{
-			puncher.moveVelocity(0);
 		}
 
 		// if puncherToggle is pressed then keep the puncher motor on max speed and keep the puncher on coast,
@@ -451,19 +451,31 @@ void opcontrol()
 		if (puncherToggle.isPressed())
 		{
 			puncherToggled = !puncherToggled; // Button was just pressed, toggle the state
-
-			if (!puncherToggled)
-				puncher.moveVelocity(0); // stop puncher if toggled off
 		}
 
 		if (puncherToggled)
 		{
+			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+
 			puncher.moveVelocity(100);
 		}
 
-		if (!puncherToggled && !puncherSingleFire.isPressed())
+		if (!puncherToggled && !puncherSingleFire.isPressed() && !puncherIsDown)
 		{
+			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+
 			puncher.moveVelocity(0);
+		}
+
+		if (puncherDown.isPressed())
+		{
+			puncherIsDown = !puncherIsDown;
+		}
+
+		if (puncherIsDown)
+		{
+			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+			puncher.moveAbsolute(45, 100);
 		}
 
 		// testing the indivudual motors
@@ -498,11 +510,11 @@ void opcontrol()
 
 			if (masterController.getDigital(okapi::ControllerDigital::left) && !reverseTest)
 			{
-				puncher.moveVelocity(200);
+				puncher.moveVelocity(100);
 			}
 			else if (masterController.getDigital(okapi::ControllerDigital::left) && reverseTest)
 			{
-				puncher.moveVelocity(-200);
+				puncher.moveVelocity(-100);
 			}
 			else
 			{
@@ -605,8 +617,8 @@ void opcontrol()
 		}
 
 		// printf( "\n wings position: %f"  , wings.getPosition());
-		
+
 		pros::delay(20); // delay that is required for pros to work
-		//default delay of 20ms but i can try 10ms later to see if its better
+						 // default delay of 20ms but i can try 10ms later to see if its better
 	}
 }
