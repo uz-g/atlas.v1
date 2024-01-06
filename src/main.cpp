@@ -27,6 +27,9 @@ bool puncherToggled = false; // for the puncher toggle button, allows for
 bool reverseFlag = false;	 // for the chassis wings front button, allows for
 							 // the driver controls to be reversed
 
+bool motorTest = false; // for testing motors
+bool reverseTest = false;
+
 // chassis
 
 // create the chassis object/motors with the correct wheels and gearset
@@ -115,7 +118,7 @@ void toggleWings()
 	{
 	case wingsState::RETRACTED:
 		wings.moveAbsolute(-1120, 200);
-		//printf("wings action: was retracted -> is now extending\n");
+		// printf("wings action: was retracted -> is now extending\n");
 		break;
 
 	case wingsState::RETRACTING:
@@ -450,7 +453,7 @@ void opcontrol()
 			puncherToggled = !puncherToggled; // Button was just pressed, toggle the state
 
 			if (!puncherToggled)
-				puncher.moveVelocity(0); //stop puncher if toggled off
+				puncher.moveVelocity(0); // stop puncher if toggled off
 		}
 
 		if (puncherToggled)
@@ -463,7 +466,147 @@ void opcontrol()
 			puncher.moveVelocity(0);
 		}
 
+		// testing the indivudual motors
+
+		// if down arrow and up arrow and x and b are pressed at the same time then motor test is opposite of what it was
+		if (masterController.getDigital(okapi::ControllerDigital::down) && masterController.getDigital(okapi::ControllerDigital::up) && masterController.getDigital(okapi::ControllerDigital::X) && masterController.getDigital(okapi::ControllerDigital::B))
+		{
+			motorTest = !motorTest;
+			pros::delay(500); // Add a delay to prevent rapid toggling
+		}
+
+		if (motorTest)
+		{
+
+			if (masterController.getDigital(okapi::ControllerDigital::L2) && masterController.getDigital(okapi::ControllerDigital::R2))
+			{
+				reverseTest = !reverseTest;
+			}
+
+			if (masterController.getDigital(okapi::ControllerDigital::up) && !reverseTest)
+			{
+				wings.moveVelocity(200);
+			}
+			else if (masterController.getDigital(okapi::ControllerDigital::up) && reverseTest)
+			{
+				wings.moveVelocity(-200);
+			}
+			else
+			{
+				wings.moveVelocity(0);
+			}
+
+			if (masterController.getDigital(okapi::ControllerDigital::left) && !reverseTest)
+			{
+				puncher.moveVelocity(200);
+			}
+			else if (masterController.getDigital(okapi::ControllerDigital::left) && reverseTest)
+			{
+				puncher.moveVelocity(-200);
+			}
+			else
+			{
+				puncher.moveVelocity(0);
+			}
+
+			okapi::Motor l_motor1(LEFT_MTR1, false, okapi::AbstractMotor::gearset::green,
+								  okapi::AbstractMotor::encoderUnits::degrees);
+			okapi::Motor l_motor2(LEFT_MTR2, false, okapi::AbstractMotor::gearset::green,
+								  okapi::AbstractMotor::encoderUnits::degrees);
+
+			okapi::Motor l_motor3(LEFT_MTR3, false, okapi::AbstractMotor::gearset::green,
+								  okapi::AbstractMotor::encoderUnits::degrees);
+
+			okapi::Motor r_motor1(RIGHT_MTR1, true, okapi::AbstractMotor::gearset::green,
+								  okapi::AbstractMotor::encoderUnits::degrees);
+
+			okapi::Motor r_motor2(RIGHT_MTR2, true, okapi::AbstractMotor::gearset::green,
+								  okapi::AbstractMotor::encoderUnits::degrees);
+
+			okapi::Motor r_motor3(RIGHT_MTR3, true, okapi::AbstractMotor::gearset::green,
+								  okapi::AbstractMotor::encoderUnits::degrees);
+			if (masterController.getDigital(okapi::ControllerDigital::right) && !reverseTest)
+			{
+				l_motor1.moveVelocity(200);
+			}
+			else if (masterController.getDigital(okapi::ControllerDigital::right) && reverseTest)
+			{
+				l_motor1.moveVelocity(-200);
+			}
+			else
+			{
+				l_motor1.moveVelocity(0);
+			}
+
+			if (masterController.getDigital(okapi::ControllerDigital::A) && !reverseTest)
+			{
+				l_motor2.moveVelocity(200);
+			}
+			else if (masterController.getDigital(okapi::ControllerDigital::A) && reverseTest)
+			{
+				l_motor2.moveVelocity(-200);
+			}
+			else
+			{
+				l_motor2.moveVelocity(0);
+			}
+
+			if (masterController.getDigital(okapi::ControllerDigital::Y) && !reverseTest)
+			{
+				l_motor3.moveVelocity(200);
+			}
+			else if (masterController.getDigital(okapi::ControllerDigital::Y) && reverseTest)
+			{
+				l_motor3.moveVelocity(-200);
+			}
+			else
+			{
+				l_motor3.moveVelocity(0);
+			}
+
+			if (masterController.getDigital(okapi::ControllerDigital::right) && !reverseTest)
+			{
+				r_motor1.moveVelocity(200);
+			}
+			else if (masterController.getDigital(okapi::ControllerDigital::right) && reverseTest)
+			{
+				r_motor1.moveVelocity(-200);
+			}
+			else
+			{
+				r_motor1.moveVelocity(0);
+			}
+
+			if (masterController.getDigital(okapi::ControllerDigital::B) && !reverseTest)
+			{
+				r_motor2.moveVelocity(200);
+			}
+			else if (masterController.getDigital(okapi::ControllerDigital::B) && reverseTest)
+			{
+				r_motor2.moveVelocity(-200);
+			}
+			else
+			{
+				r_motor2.moveVelocity(0);
+			}
+
+			if (masterController.getDigital(okapi::ControllerDigital::A) && !reverseTest)
+			{
+				r_motor3.moveVelocity(200);
+			}
+			else if (masterController.getDigital(okapi::ControllerDigital::A) && reverseTest)
+			{
+				r_motor3.moveVelocity(-200);
+			}
+			else
+			{
+				r_motor3.moveVelocity(0);
+			}
+		}
+
 		// printf( "\n wings position: %f"  , wings.getPosition());
-		pros::delay(20);
+		
+		pros::delay(20); // delay that is required for pros to work
+		//default delay of 20ms but i can try 10ms later to see if its better
 	}
 }
