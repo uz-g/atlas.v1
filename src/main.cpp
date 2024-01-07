@@ -10,7 +10,7 @@ using namespace std;
 // create the motors
 okapi::Motor wings(WINGS, false, okapi::AbstractMotor::gearset::green,
 				   okapi::AbstractMotor::encoderUnits::degrees);
-okapi::Motor puncher(PUNCHER, true, okapi::AbstractMotor::gearset::red,
+okapi::Motor puncher(PUNCHER, false, okapi::AbstractMotor::gearset::red,
 					 okapi::AbstractMotor::encoderUnits::degrees);
 
 // create controller
@@ -276,26 +276,29 @@ void autonomous()
 
 		// diagram.red & digram.green lines: push the ball that starts infront of the
 		// robot to the goal -> go back and hit the ball with more force into the goal
-		chassis->driveToPoint({.4_ft, 1.7_ft});
-		chassis->driveToPoint({0_ft, 1_ft});
+		chassis->driveToPoint({.4_ft, 3.5_ft});
 		chassis->driveToPoint({0_ft, 2_ft});
+		chassis->driveToPoint({0_ft, 3.8_ft});
 
-		chassis->setState({0_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testin
+		chassis->setState({0_ft, 3.8_ft}); // change this to where ever the robot ends up while testing
+
+		chassis->turnToAngle(90_deg); // rotate
 
 		// diagram.blue & diagram.white lines: move back -> rotate -> open wings
-		chassis->driveToPoint({1.2_ft, .9_ft});
+		chassis->driveToPoint({1_ft, 1.3_ft});
 		chassis->turnToAngle(90_deg);
 		toggleWings();
 
 		// diagram.lightBlue & diagram.white lines: move forward to push the
-		// matchload ball and retract the wings while moving backwards
+		// matchload ball and retract the wings
 		chassis->driveToPoint({2_ft, 1_ft});
-		wings.moveAbsolute(0, 200);
-		chassis->driveToPoint({1.8_ft, 1_ft});
+		toggleWings();
 
 		// diagram.pink line: push the matchload ball and the one under the
 		// hang bar to my zone
-		chassis->driveToPoint({4_ft, 1_ft});
+		chassis->driveToPoint({3_ft, .2_ft});
+		chassis->driveToPoint({4_ft, .2_ft});
+		chassis->driveToPoint({6_ft, .2_ft});
 		// opponent goalside auton end
 		break;
 
@@ -303,21 +306,24 @@ void autonomous()
 		// ally goalside auton
 		chassis->setState({8_ft, 0_ft, 0_deg});
 
-		// take the ball out of the matchload zone [no code for this yet]
-		chassis->driveToPoint({9_ft, 1_ft});
-		chassis->driveToPoint({9.5_ft, 1_ft}); // drive next to matchload zone
+		// take the ball out of the matchload zone 
+
+		chassis->driveToPoint({9_ft, 1.8_ft});
+		chassis->turnToAngle(90_deg); // rotate
+		chassis->driveToPoint({11_ft, 1.2_ft}); // drive next to matchload zone
 
 		chassis->turnToAngle(90_deg); // rotate
 		toggleWings();
 		// open wings
 
-		chassis->driveToPoint({7_ft, 1_ft}); // go back to take the ball out of the matchload zone
+		chassis->driveToPoint({8.4_ft, 1.4_ft}); // go back to take the ball out of the matchload zone
 
-		chassis->setState({7_ft, 1_ft, 0_deg}); // change this to where ever the robot ends up while testing
+		chassis->setState({8.4_ft, 1.4_ft, 0_deg}); // change this to where ever the robot ends up while testing
 		toggleWings();
 		// close wings
 
 		// push ball infornt into goal
+		chassis->driveToPoint({8.8_ft, 3.2_ft});
 		chassis->driveToPoint({8_ft, 4_ft});
 		chassis->driveToPoint({7_ft, 4.8_ft});
 
@@ -327,22 +333,19 @@ void autonomous()
 
 		chassis->turnToAngle(90_deg);
 		// ally goalside auton end
+		chassis->driveToPoint({9.7_ft, 4.5_ft});
 
+		break;
 	case autonState::skills:
 		chassis->setState({2_ft, 0_ft, 0_deg});
 
 		// diagram.red & digram.green lines: push the ball that starts infront of the
 		// robot to the goal -> go back and hit the ball with more force into the goal
-		chassis->driveToPoint({0_ft, 1.7_ft});
-		chassis->driveToPoint({0_ft, 1_ft});
-		chassis->driveToPoint({0_ft, 2_ft});
-
-		// set chassis state
-		chassis->setState({0_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testing
+		
 
 		// move to matchload pipe and turn to face offensive zone
 		chassis->driveToPoint({1_ft, 1_ft});
-		chassis->turnAngle(45_deg);
+		chassis->turnAngle(70_deg);
 
 		// punch for 35 seconds
 		punchForAmount(25);
@@ -368,6 +371,8 @@ void autonomous()
 		chassis->driveToPoint({7_ft, 2_ft});
 		chassis->driveToPoint({8_ft, 7.7_ft});
 		chassis->driveToPoint({10_ft, 8_ft});
+
+		break;
 
 	case autonState::testing:
 		chassis->setState({2_ft, 0_ft, 0_deg});
