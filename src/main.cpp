@@ -115,7 +115,7 @@ void toggleWings()
 	}
 
 	//	act based on the state of wings
-	printf("%f", wings.getPosition());
+	// printf("%f", wings.getPosition());
 
 	switch (wingsCurrentStatus)
 	{
@@ -402,9 +402,9 @@ void opcontrol()
 			pros::delay(500); // Add a delay to prevent rapid toggling
 		}
 
-		if (!motorTest) // normal
+		if (!motorTest) // normal mode
 		{
-			if (reverseButton.changedToPressed()) // reverse flag toggle if button is pressed
+			if (reverseButton.changedToPressed()) // reverse robot controls toggle if button is pressed
 			{
 				reversed = !reversed;
 			}
@@ -426,7 +426,7 @@ void opcontrol()
 			// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
 			// coasts to a stop
 
-			if (wingsToggle.changedToPressed())
+			if (wingsToggle.isPressed())
 			{
 				// printf("\n wings toggle button is pressed");
 				toggleWings();
