@@ -10,7 +10,7 @@ using namespace std;
 // create the motors
 okapi::Motor wings(WINGS, false, okapi::AbstractMotor::gearset::green,
 				   okapi::AbstractMotor::encoderUnits::degrees);
-okapi::Motor puncher(PUNCHER, false, okapi::AbstractMotor::gearset::red,
+okapi::Motor puncher(PUNCHER, true, okapi::AbstractMotor::gearset::red,
 					 okapi::AbstractMotor::encoderUnits::degrees);
 
 // create controller
@@ -306,10 +306,10 @@ void autonomous()
 		// ally goalside auton
 		chassis->setState({8_ft, 0_ft, 0_deg});
 
-		// take the ball out of the matchload zone 
+		// take the ball out of the matchload zone
 
 		chassis->driveToPoint({9_ft, 1.8_ft});
-		chassis->turnToAngle(90_deg); // rotate
+		chassis->turnToAngle(90_deg);			// rotate
 		chassis->driveToPoint({11_ft, 1.2_ft}); // drive next to matchload zone
 
 		chassis->turnToAngle(90_deg); // rotate
@@ -341,7 +341,6 @@ void autonomous()
 
 		// diagram.red & digram.green lines: push the ball that starts infront of the
 		// robot to the goal -> go back and hit the ball with more force into the goal
-		
 
 		// move to matchload pipe and turn to face offensive zone
 		chassis->driveToPoint({1_ft, 1_ft});
@@ -397,102 +396,106 @@ void opcontrol()
 
 	while (true)
 	{
-		if (reverseButton.changedToPressed()) // reverse flag toggle if button is pressed
-		{
-			reversed = !reversed;
-		}
-
-		// Get joystick values so that they can be manipulated for reversal
-		double leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
-		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
-
-		// Reverse controls if needed
-		if (reversed)
-		{
-			leftJoystick = -leftJoystick;
-			rightJoystick = -rightJoystick;
-		}
-
-		// Pass the manipulated joystick values to tank drive thing
-		chassis->getModel()->tank(leftJoystick, rightJoystick);
-
-		// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
-		// coasts to a stop
-
-		if (wingsToggle.changedToPressed())
-		{
-			// printf("\n wings toggle button is pressed");
-			toggleWings();
-			// toggle wings is pushed
-		}
-
-		if (wingsIn.isPressed())
-		{
-			wings.moveVelocity(200);
-			// r1 is pushed
-		}
-		else if (wingsOut.isPressed())
-		{
-			wings.moveVelocity(-200);
-			// r2 is pushed
-		}
-		else if (wingsOut.changedToReleased() || wingsIn.changedToReleased())
-		{
-			wings.moveVelocity(0);
-			// printf("\n wings are set to 0 velocity");
-		}
-
-		// single fire pucnher button setup
-		if (puncherSingleFire.isPressed())
-		{
-			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-			puncherToggled = false; // Single fire button is pressed, reset toggle state/untoggle puncher
-			puncher.moveVelocity(100);
-		}
-
-		// if puncherToggle is pressed then keep the puncher motor on max speed and keep the puncher on coast,
-		// else puncher motor is set to 0 and coasts to a stop
-
-		if (puncherToggle.isPressed())
-		{
-			puncherToggled = !puncherToggled; // Button was just pressed, toggle the state
-		}
-
-		if (puncherToggled)
-		{
-			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-
-			puncher.moveVelocity(100);
-		}
-
-		if (!puncherToggled && !puncherSingleFire.isPressed() && !puncherIsDown)
-		{
-			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-
-			puncher.moveVelocity(0);
-		}
-
-		if (puncherDown.isPressed())
-		{
-			puncherIsDown = !puncherIsDown;
-		}
-
-		if (puncherIsDown)
-		{
-			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-			puncher.moveAbsolute(45, 100);
-		}
-
-		// testing the indivudual motors
-
-		// if down arrow and up arrow and x and b are pressed at the same time then motor test is opposite of what it was
 		if (masterController.getDigital(okapi::ControllerDigital::down) && masterController.getDigital(okapi::ControllerDigital::up) && masterController.getDigital(okapi::ControllerDigital::X) && masterController.getDigital(okapi::ControllerDigital::B))
 		{
 			motorTest = !motorTest;
 			pros::delay(500); // Add a delay to prevent rapid toggling
 		}
 
-		if (motorTest)
+		if (!motorTest) // normal
+		{
+			if (reverseButton.changedToPressed()) // reverse flag toggle if button is pressed
+			{
+				reversed = !reversed;
+			}
+
+			// Get joystick values so that they can be manipulated for reversal
+			double leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
+			double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
+
+			// Reverse controls if needed
+			if (reversed)
+			{
+				leftJoystick = -leftJoystick;
+				rightJoystick = -rightJoystick;
+			}
+
+			// Pass the manipulated joystick values to tank drive thing
+			chassis->getModel()->tank(leftJoystick, rightJoystick);
+
+			// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
+			// coasts to a stop
+
+			if (wingsToggle.changedToPressed())
+			{
+				// printf("\n wings toggle button is pressed");
+				toggleWings();
+				// toggle wings is pushed
+			}
+
+			if (wingsIn.isPressed())
+			{
+				wings.moveVelocity(200);
+				// r1 is pushed
+			}
+			else if (wingsOut.isPressed())
+			{
+				wings.moveVelocity(-200);
+				// r2 is pushed
+			}
+			else if (wingsOut.changedToReleased() || wingsIn.changedToReleased())
+			{
+				wings.moveVelocity(0);
+				// printf("\n wings are set to 0 velocity");
+			}
+
+			// single fire pucnher button setup
+			if (puncherSingleFire.isPressed())
+			{
+				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+				puncherToggled = false; // Single fire button is pressed, reset toggle state/untoggle puncher
+				puncher.moveVelocity(100);
+			}
+
+			// if puncherToggle is pressed then keep the puncher motor on max speed and keep the puncher on coast,
+			// else puncher motor is set to 0 and coasts to a stop
+
+			if (puncherToggle.isPressed())
+			{
+				puncherToggled = !puncherToggled; // Button was just pressed, toggle the state
+			}
+
+			if (puncherToggled)
+			{
+				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+
+				puncher.moveVelocity(100);
+			}
+
+			if (!puncherToggled && !puncherSingleFire.isPressed() && !puncherIsDown)
+			{
+				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+
+				puncher.moveVelocity(0);
+			}
+
+			if (puncherDown.isPressed())
+			{
+				puncherIsDown = !puncherIsDown;
+			}
+
+			if (puncherIsDown)
+			{
+				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+				puncher.moveAbsolute(45, 100);
+			}
+
+			// testing the indivudual motors
+
+			// if down arrow and up arrow and x and b are pressed at the same time then motor test is opposite of what it was
+		}
+
+		else if (motorTest)
 		{
 
 			if (masterController.getDigital(okapi::ControllerDigital::L2) && masterController.getDigital(okapi::ControllerDigital::R2))
