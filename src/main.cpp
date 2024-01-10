@@ -33,7 +33,6 @@ bool reverseTest = false;
 
 bool puncherIsDown = false;
 
-
 // chassis
 
 // create the chassis object/motors with the correct wheels and gearset
@@ -344,7 +343,7 @@ void autonomous()
 
 		// move to matchload pipe and turn to face offensive zone
 		chassis->driveToPoint({1_ft, 1.1_ft});
-		chassis->turnAngle(70_deg);
+		chassis->turnToPoint({9_ft, 5_ft});
 
 		// punch for 35 seconds
 		punchForAmount(25);
@@ -353,22 +352,25 @@ void autonomous()
 		chassis->driveToPoint({4_ft, 0_ft});
 
 		// activate wings and drive forward to push the ball into the offensive zone
-		toggleWings();
+		chassis->driveToPoint({8_ft, 0_ft});
+		chassis->driveToPoint({9.2_ft, 1.5_ft});
 
-		chassis->driveToPoint({9_ft, 5_ft});
+		chassis->driveToPoint({7.2_ft, 4.5_ft});
+		chassis->turnToAngle(90_deg);
 		toggleWings();
-
-		chassis->setState({9_ft, 5_ft, 0_deg}); // change this to where ever the robot ends up while testing
+		chassis->driveToPoint({9.5_ft, 6_ft});
 
 		// go to right side of goal and push balls in
-		chassis->driveToPoint({8_ft, .5_ft});
-		chassis->driveToPoint({9.5_ft, 2_ft});
-		chassis->setState({9.5_ft, 2_ft, 0_deg}); // change this to where ever the robot ends up while testing
+		chassis->driveToPoint({7.2_ft, 9_ft});
+		chassis->driveToPoint({9.5_ft, 7_ft});
+
+
+		chassis->driveToPoint({7.5_ft, 3.5_ft});
+		chassis->driveToPoint({9.5_ft, 5_ft});
 
 		// go to left side of goal and push balls in
-		chassis->driveToPoint({7_ft, 2_ft});
-		chassis->driveToPoint({8_ft, 7.7_ft});
-		chassis->driveToPoint({10_ft, 8_ft});
+		chassis->driveToPoint({9_ft, 1_ft});
+		chassis->driveToPoint({10_ft, 3.5_ft});
 
 		break;
 
@@ -406,7 +408,7 @@ void opcontrol()
 
 			if (puncher.getPosition() >= 270 || puncher.getTorque() < 1)
 			{
-				puncher.tarePosition(); //reset postion when puncher snaps back up
+				puncher.tarePosition(); // reset postion when puncher snaps back up
 			}
 
 			if (reverseButton.changedToPressed()) // reverse robot controls toggle if button is pressed
@@ -484,12 +486,10 @@ void opcontrol()
 			// 	puncher.moveVelocity(0);
 			// }
 
-
-
 			if (puncherDown.changedToPressed())
 			{
 				puncherIsDown = !puncherIsDown;
-				//reset the absolute position of the puncher to 0
+				// reset the absolute position of the puncher to 0
 				puncher.tarePosition();
 			}
 
@@ -498,7 +498,6 @@ void opcontrol()
 				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 				puncher.moveAbsolute(300, 100);
 			}
-			
 
 			if (puncherSingleFire.changedToReleased() || (!puncherToggled && !puncherSingleFire.isPressed() && !puncherIsDown))
 			{
