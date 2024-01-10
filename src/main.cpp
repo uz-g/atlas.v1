@@ -10,7 +10,7 @@ using namespace std;
 // create the motors
 okapi::Motor wings(WINGS, false, okapi::AbstractMotor::gearset::green,
 				   okapi::AbstractMotor::encoderUnits::degrees);
-okapi::Motor puncher(PUNCHER, true, okapi::AbstractMotor::gearset::red,
+okapi::Motor puncher(PUNCHER, false, okapi::AbstractMotor::gearset::red,
 					 okapi::AbstractMotor::encoderUnits::degrees);
 
 // create controller
@@ -32,6 +32,7 @@ bool motorTest = false; // for testing motors
 bool reverseTest = false;
 
 bool puncherIsDown = false;
+
 
 // chassis
 
@@ -310,7 +311,7 @@ void autonomous()
 
 		chassis->driveToPoint({9_ft, 1.8_ft});
 		chassis->turnToAngle(90_deg);			// rotate
-		chassis->driveToPoint({11_ft, 1.2_ft}); // drive next to matchload zone
+		chassis->driveToPoint({11_ft, 1.3_ft}); // drive next to matchload zone
 
 		chassis->turnToAngle(90_deg); // rotate
 		toggleWings();
@@ -339,19 +340,17 @@ void autonomous()
 	case autonState::skills:
 		chassis->setState({2_ft, 0_ft, 0_deg});
 
-		// diagram.red & digram.green lines: push the ball that starts infront of the
-		// robot to the goal -> go back and hit the ball with more force into the goal
+		chassis->driveToPoint({.4_ft, 3.5_ft});
 
 		// move to matchload pipe and turn to face offensive zone
-		chassis->driveToPoint({1_ft, 1_ft});
+		chassis->driveToPoint({1_ft, 1.1_ft});
 		chassis->turnAngle(70_deg);
 
 		// punch for 35 seconds
 		punchForAmount(25);
 
 		// drive up to the middle pipe and turn to face the goal
-		chassis->driveToPoint({2.3_ft, 5_ft});
-		chassis->turnToAngle(-90_deg);
+		chassis->driveToPoint({4_ft, 0_ft});
 
 		// activate wings and drive forward to push the ball into the offensive zone
 		toggleWings();
@@ -404,6 +403,12 @@ void opcontrol()
 
 		if (!motorTest) // normal mode
 		{
+
+			if (puncher.getPosition() >= 270 || puncher.getTorque() < 1)
+			{
+				puncher.tarePosition(); //reset postion when puncher snaps back up
+			}
+
 			if (reverseButton.changedToPressed()) // reverse robot controls toggle if button is pressed
 			{
 				reversed = !reversed;
@@ -460,7 +465,7 @@ void opcontrol()
 			// if puncherToggle is pressed then keep the puncher motor on max speed and keep the puncher on coast,
 			// else puncher motor is set to 0 and coasts to a stop
 
-			if (puncherToggle.isPressed())
+			if (puncherToggle.changedToPressed())
 			{
 				puncherToggled = !puncherToggled; // Button was just pressed, toggle the state
 			}
@@ -472,24 +477,35 @@ void opcontrol()
 				puncher.moveVelocity(100);
 			}
 
-			if (!puncherToggled && !puncherSingleFire.isPressed() && !puncherIsDown)
-			{
-				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+			// if (!puncherToggled && !puncherSingleFire.isPressed() && !puncherIsDown)
+			// {
+			// 	puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 
-				puncher.moveVelocity(0);
-			}
+			// 	puncher.moveVelocity(0);
+			// }
 
-			if (puncherDown.isPressed())
+
+
+			if (puncherDown.changedToPressed())
 			{
 				puncherIsDown = !puncherIsDown;
+				//reset the absolute position of the puncher to 0
+				puncher.tarePosition();
 			}
 
 			if (puncherIsDown)
 			{
 				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-				puncher.moveAbsolute(45, 100);
+				puncher.moveAbsolute(300, 100);
 			}
+			
 
+			if (puncherSingleFire.changedToReleased() || (!puncherToggled && !puncherSingleFire.isPressed() && !puncherIsDown))
+			{
+				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+
+				puncher.moveVelocity(0);
+			}
 			// testing the indivudual motors
 
 			// if down arrow and up arrow and x and b are pressed at the same time then motor test is opposite of what it was
