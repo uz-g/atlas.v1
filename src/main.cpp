@@ -39,7 +39,7 @@ bool puncherIsDown = false;
 // create the chassis object/motors with the correct wheels and gearset
 auto chassis = okapi::ChassisControllerBuilder()
 				   .withMotors({LEFT_MTR1, LEFT_MTR2, LEFT_MTR3}, {-RIGHT_MTR1, -RIGHT_MTR2, -RIGHT_MTR3})
-				   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 16_in}, imev5GreenTPR})
+				   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 15_in}, imev5GreenTPR})
 				   .withOdometry()
 				   .buildOdometry();
 
@@ -425,10 +425,9 @@ void opcontrol()
 
 	while (true)
 	{
-		if (masterController.getDigital(okapi::ControllerDigital::down) && masterController.getDigital(okapi::ControllerDigital::up) && masterController.getDigital(okapi::ControllerDigital::X) && masterController.getDigital(okapi::ControllerDigital::B))
+		if (puncher.getTorque() < .5)
 		{
-			motorTest = !motorTest;
-			pros::delay(500); // Add a delay to prevent rapid toggling
+			puncher.tarePosition(); // reset postion when puncher snaps back up
 		}
 
 		if (puncherRelease.changedToPressed())
@@ -465,8 +464,8 @@ void opcontrol()
 		}
 
 		// Get joystick values so that they can be manipulated for reversal
-		double leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
-		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
+		double leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
+		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
 
 		// Reverse controls if needed
 		if (reversed)
@@ -528,26 +527,22 @@ void opcontrol()
 		if (puncherDown.changedToPressed())
 		{
 			puncherIsDown = !puncherIsDown;
-			// reset the absolute position of the puncher to 0
-			// puncher.tarePosition();
+			//reset the absolute position of the puncher to 0
 			resetGear();
-			resetGear();
+			puncher.tarePosition();
 			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-
-			// move the puncher forwards until the torque is greater than 2
-
-			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-			puncher.moveAbsolute(270, 100);
+			puncher.moveAbsolute(170, 100);
+			
+			if (!puncherIsDown)
+			{
+				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+				puncher.moveAbsolute(0, 100);
+			}
 		}
 
 		// move the puncher forwards until the torque is greater than 2
 
-		if (puncherIsDown)
-		{
-			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-			puncher.moveAbsolute(270, 100);
-			puncherIsDown = true;
-		}
+		
 
 		if (puncherSingleFire.changedToReleased() || (!puncherToggled && !puncherSingleFire.isPressed() && !puncherIsDown))
 		{
