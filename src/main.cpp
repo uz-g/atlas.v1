@@ -7,6 +7,14 @@ using namespace okapi;
 using namespace pros;
 using namespace std;
 
+
+
+float kP = 0.0001;
+float kI = 0.0002;
+float kD = 0.0010002;
+
+
+
 // create the motors
 okapi::Motor wings(WINGS, false, okapi::AbstractMotor::gearset::green,
 				   okapi::AbstractMotor::encoderUnits::degrees);
@@ -34,14 +42,36 @@ bool reverseTest = false;
 
 bool puncherIsDown = false;
 
+
 // chassis
 
 // create the chassis object/motors with the correct wheels and gearset
-auto chassis = okapi::ChassisControllerBuilder()
-				   .withMotors({LEFT_MTR1, LEFT_MTR2, LEFT_MTR3}, {-RIGHT_MTR1, -RIGHT_MTR2, -RIGHT_MTR3})
-				   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 15_in}, imev5GreenTPR})
+auto chassis = ChassisControllerBuilder()
+				   .withMotors({-LEFT_MTR1, -LEFT_MTR2, -LEFT_MTR3}, {RIGHT_MTR1, RIGHT_MTR2, RIGHT_MTR3})
+				   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 14.75_in}, imev5GreenTPR})
+				//    .withGains
+				//    (
+				//    {0.001, 0, 0.0001},  // distance controller gains (p, i, d)
+				//    {0.0001, 0, 0.0001}, // turn controller gains (p, i, d)
+				//    {0.0001, 0, 0.0001} // angle controller gains (helps drive straight) (p, i, d)
+				//    )
+				  
 				   .withOdometry()
 				   .buildOdometry();
+
+				   
+
+// create chassis controller pid
+
+auto profileController = AsyncMotionProfileControllerBuilder()
+							 .withLimits({1.0, 1.7, 4.7}) // double maxVel double maxAccel double maxJerk
+							 .withOutput(chassis)
+							 .buildMotionProfileController();
+
+auto controlPID = IterativeControllerFactory::posPID(kP, kI, kD);
+
+
+
 
 enum class autonState
 {
@@ -295,7 +325,9 @@ void autonomous()
 	{
 	case autonState::opSide:
 		// opponent goalside auton
-		chassis->setState({2_ft, 0_ft, 0_deg});
+		// chassis->setState({2_ft, 0_ft, 0_deg});
+		chassis->setState({0_ft, 24_in, 0_deg});
+		chassis->driveToPoint({30_in, 2_in});
 
 		// diagram.red & digram.green lines: push the ball that starts infront of the
 		// robot to the goal -> go back and hit the ball with more force into the goal
@@ -402,8 +434,15 @@ void autonomous()
 		break;
 
 	case autonState::testing:
-		chassis->setState({2_ft, 0_ft, 0_deg});
-		toggleWings();
+		// chassis->setState({0_ft, 24_in, 0_deg});
+		// chassis->driveToPoint({30_in, 2_in});
+
+		chassis->setState({0_ft, 8_ft, 0_deg});
+		chassis->driveToPoint({3_ft, 11.5_ft});
+		chassis->driveToPoint({2_ft, 11.5_ft});
+		chassis->driveToPoint({3_ft, 11.5_ft});
+
+		break;
 		// will be testing the rotations and the threshold for this function
 
 	default:
@@ -464,18 +503,22 @@ void opcontrol()
 		}
 
 		// Get joystick values so that they can be manipulated for reversal
-		double leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
-		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
+		double leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
+		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
 
 		// Reverse controls if needed
 		if (reversed)
 		{
 			leftJoystick = -leftJoystick;
 			rightJoystick = -rightJoystick;
+			chassis->getModel()->tank(rightJoystick, leftJoystick);
+		}
+		else
+		{
+			chassis->getModel()->tank(leftJoystick, rightJoystick);
 		}
 
 		// Pass the manipulated joystick values to tank drive thing
-		chassis->getModel()->tank(leftJoystick, rightJoystick);
 
 		// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
 		// coasts to a stop
@@ -527,12 +570,12 @@ void opcontrol()
 		if (puncherDown.changedToPressed())
 		{
 			puncherIsDown = !puncherIsDown;
-			//reset the absolute position of the puncher to 0
+			// reset the absolute position of the puncher to 0
 			resetGear();
 			puncher.tarePosition();
 			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 			puncher.moveAbsolute(170, 100);
-			
+
 			if (!puncherIsDown)
 			{
 				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
@@ -541,8 +584,6 @@ void opcontrol()
 		}
 
 		// move the puncher forwards until the torque is greater than 2
-
-		
 
 		if (puncherSingleFire.changedToReleased() || (!puncherToggled && !puncherSingleFire.isPressed() && !puncherIsDown))
 		{
