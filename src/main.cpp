@@ -4,16 +4,26 @@
 #include "okapi/api.hpp"
 
 using namespace okapi;
-using namespace pros;
 using namespace std;
 
+// distance controller gains
+float dP = 0.0001;
+float dI = 0.0002;
+float dD = 0.0010002;
 
+// turn controller gains
+float tP = 0.0001;
+float tI = 0.0002;
+float tD = 0.0010002;
 
-float kP = 0.0001;
-float kI = 0.0002;
-float kD = 0.0010002;
+// angle controller gains
+float aP = 0.0001;
+float aI = 0.0002;
+float aD = 0.0010002;
 
-
+double maxVel = 5.6;   // inches per second
+double maxAccel = 1.5; // desired inches per second squared acceleration
+double maxJerk = .9;   // desired inches per second cubed jerk (rate of change of acceleration)
 
 // create the motors
 okapi::Motor wings(WINGS, false, okapi::AbstractMotor::gearset::green,
@@ -42,36 +52,35 @@ bool reverseTest = false;
 
 bool puncherIsDown = false;
 
-
 // chassis
 
 // create the chassis object/motors with the correct wheels and gearset
 auto chassis = ChassisControllerBuilder()
-				   .withMotors({-LEFT_MTR1, -LEFT_MTR2, -LEFT_MTR3}, {RIGHT_MTR1, RIGHT_MTR2, RIGHT_MTR3})
-				   .withDimensions({AbstractMotor::gearset::green, (36.0 / 60.0)}, {{3.25_in, 14.75_in}, imev5GreenTPR})
-				//    .withGains
-				//    (
-				//    {0.001, 0, 0.0001},  // distance controller gains (p, i, d)
-				//    {0.0001, 0, 0.0001}, // turn controller gains (p, i, d)
-				//    {0.0001, 0, 0.0001} // angle controller gains (helps drive straight) (p, i, d)
-				//    )
-				  
-				   .withOdometry()
+				   .withMotors(
+					   {-LEFT_MTR1, -LEFT_MTR2, -LEFT_MTR3},
+					   {RIGHT_MTR1, RIGHT_MTR2, RIGHT_MTR3}) // left motor is reversed
+				   .withDimensions(
+					   {AbstractMotor::gearset::green, (60.0 / 36.0)}, // green motor cartridge, 60:36 gear ratio
+					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
+				   .withSensors(
+					   ADIEncoder{'A', 'B'},
+					   ADIEncoder{'C', 'D', true})
+				   .withOdometry({{2.75_in, 7_in}, quadEncoderTPR})
+				   .withGains(
+					   {dP, dI, dD}, // distance controller gains (p, i, d)
+					   {tP, tI, tD}, // turn controller gains (p, i, d)
+					   {aP, aI, aD}	 // angle controller gains (helps drive straight) (p, i, d)
+					   )
 				   .buildOdometry();
-
-				   
 
 // create chassis controller pid
 
 auto profileController = AsyncMotionProfileControllerBuilder()
-							 .withLimits({1.0, 1.7, 4.7}) // double maxVel double maxAccel double maxJerk
+							 .withLimits({maxVel, maxAccel, maxJerk}) // double maxVel double maxAccel double maxJerk
 							 .withOutput(chassis)
 							 .buildMotionProfileController();
 
 auto controlPID = IterativeControllerFactory::posPID(kP, kI, kD);
-
-
-
 
 enum class autonState
 {
