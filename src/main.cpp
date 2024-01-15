@@ -6,24 +6,7 @@
 using namespace okapi;
 using namespace std;
 
-// distance controller gains
-float dP = 0.0001;
-float dI = 0.0002;
-float dD = 0.0010002;
 
-// turn controller gains
-float tP = 0.0001;
-float tI = 0.0002;
-float tD = 0.0010002;
-
-// angle controller gains
-float aP = 0.0001;
-float aI = 0.0002;
-float aD = 0.0010002;
-
-double maxVel = 5.6;   // inches per second
-double maxAccel = 1.5; // desired inches per second squared acceleration
-double maxJerk = .9;   // desired inches per second cubed jerk (rate of change of acceleration)
 
 // create the motors
 okapi::Motor wings(WINGS, false, okapi::AbstractMotor::gearset::green,
@@ -62,25 +45,27 @@ auto chassis = ChassisControllerBuilder()
 				   .withDimensions(
 					   {AbstractMotor::gearset::green, (60.0 / 36.0)}, // green motor cartridge, 60:36 gear ratio
 					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
+
 				   .withSensors(
-					   ADIEncoder{'A', 'B'},
-					   ADIEncoder{'C', 'D', true})
-				   .withOdometry({{2.75_in, 7_in}, quadEncoderTPR})
+					   RotationSensor{xRotation},	   // Left encoder in V5 port 1
+					   RotationSensor{yRotation, true} // Right encoder in V5 port 2 (reversed)
+					   )
+				   .withOdometry({{2.75_in, 7_in}, quadEncoderTPR}) // 2.75 inch wheels, 7 inch wheelbase width
 				   .withGains(
-					   {dP, dI, dD}, // distance controller gains (p, i, d)
-					   {tP, tI, tD}, // turn controller gains (p, i, d)
-					   {aP, aI, aD}	 // angle controller gains (helps drive straight) (p, i, d)
+					   {kPDist, kIDist, kDDist}, // distance controller gains (p, i, d)
+					   {kPTurn, kITurn, kDTurn}, // turn controller gains (p, i, d)
+					   {kPAngle, kIAngle, kDAngle}	 // angle controller gains (helps drive straight) (p, i, d)
 					   )
 				   .buildOdometry();
 
 // create chassis controller pid
 
 auto profileController = AsyncMotionProfileControllerBuilder()
-							 .withLimits({maxVel, maxAccel, maxJerk}) // double maxVel double maxAccel double maxJerk
+							 .withLimits({kMaxVel, kMaxAccel, kMaxJerk}) // double maxVel double maxAccel double maxJerk
 							 .withOutput(chassis)
 							 .buildMotionProfileController();
 
-auto controlPID = IterativeControllerFactory::posPID(kP, kI, kD);
+
 
 enum class autonState
 {
