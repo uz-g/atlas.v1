@@ -6,34 +6,23 @@
 using namespace okapi;
 using namespace std;
 
-
-
 // create the motors
-okapi::Motor wings(WINGS, false, okapi::AbstractMotor::gearset::green,
-				   okapi::AbstractMotor::encoderUnits::degrees);
-okapi::Motor puncher(PUNCHER, false, okapi::AbstractMotor::gearset::red,
-					 okapi::AbstractMotor::encoderUnits::degrees);
+okapi::Motor lift(LIFT, false, okapi::AbstractMotor::gearset::red,
+				  okapi::AbstractMotor::encoderUnits::degrees);
+okapi::Motor flywheel(FLYWHEEL, false, okapi::AbstractMotor::gearset::blue,
+					  okapi::AbstractMotor::encoderUnits::degrees);
 
 // create controller
 okapi::Controller masterController;
-okapi::ControllerButton wingsIn(okapi::ControllerDigital::R1);
-okapi::ControllerButton wingsOut(okapi::ControllerDigital::R2);
-okapi::ControllerButton wingsToggle(okapi::ControllerDigital::B);
-okapi::ControllerButton puncherToggle(okapi::ControllerDigital::L1);
-okapi::ControllerButton puncherSingleFire(okapi::ControllerDigital::L2);
 okapi::ControllerButton reverseButton(okapi::ControllerDigital::X);
-okapi::ControllerButton puncherDown(okapi::ControllerDigital::down);
-okapi::ControllerButton puncherRelease(okapi::ControllerDigital::up);
+okapi::ControllerButton flywheelToggle(okapi::ControllerDigital::R1);
+okapi::ControllerButton flywheelForward(okapi::ControllerDigital::R2);
+okapi::ControllerButton flywheelBackward(okapi::ControllerDigital::down);
+okapi::ControllerButton liftUpManual(okapi::ControllerDigital::L1);
+okapi::ControllerButton liftDownManual(okapi::ControllerDigital::L2);
+okapi::ControllerButton liftToggle(okapi::ControllerDigital::A);
 
-bool puncherToggled = false; // for the puncher toggle button, allows for
-							 // the puncher to be toggled on and off
-bool reversed = false;		 // for the chassis wings front button, allows for
-							 // the driver controls to be reversed
-
-bool motorTest = false; // for testing motors
-bool reverseTest = false;
-
-bool puncherIsDown = false;
+// the driver controls to be reversed
 
 // chassis
 
@@ -43,17 +32,17 @@ auto chassis = ChassisControllerBuilder()
 					   {-LEFT_MTR1, -LEFT_MTR2, -LEFT_MTR3},
 					   {RIGHT_MTR1, RIGHT_MTR2, RIGHT_MTR3}) // left motor is reversed
 				   .withGains(
-					   {kPDist, kIDist, kDDist}, // distance controller gains (p, i, d)
-					   {kPTurn, kITurn, kDTurn}, // turn controller gains (p, i, d)
-					   {kPAngle, kIAngle, kDAngle}	 // angle controller gains (helps drive straight) (p, i, d)
+					   {kPDist, kIDist, kDDist},   // distance controller gains (p, i, d)
+					   {kPTurn, kITurn, kDTurn},   // turn controller gains (p, i, d)
+					   {kPAngle, kIAngle, kDAngle} // angle controller gains (helps drive straight) (p, i, d)
 					   )
 				   .withSensors(
-					   RotationSensor{xRotation},	   // Left encoder in V5 port 1
-					   RotationSensor{yRotation, true} // Right encoder in V5 port 2 (reversed)
+					   RotationSensor{xRotationSensor},		 // Left encoder in V5 port 1
+					   RotationSensor{yRotationSensor, true} // Right encoder in V5 port 2 (reversed)
 					   )
 				   .withDimensions(
 					   {AbstractMotor::gearset::green, (60.0 / 36.0)}, // green motor cartridge, 60:36 gear ratio
-					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
+					   {{3.25_in, 12_in}, imev5GreenTPR})			   // 3.25 inch wheels, 14.75 inch wheelbase width
 
 				   .withOdometry({{2.75_in, 7_in}, quadEncoderTPR}) // 2.75 inch wheels, 7 inch wheelbase width
 				   .buildOdometry();
@@ -61,15 +50,11 @@ auto chassis = ChassisControllerBuilder()
 // create chassis controller pid
 
 auto profileController = AsyncMotionProfileControllerBuilder()
-							 .withLimits({
-								1.06 * .9, 
-								2.00 * .9,
-								10.00 * .9
-							 }) // double maxVel double maxAccel double maxJerk
+							 .withLimits({1.06 * .9,
+										  2.00 * .9,
+										  10.00 * .9}) // double maxVel double maxAccel double maxJerk
 							 .withOutput(chassis)
 							 .buildMotionProfileController();
-
-
 
 enum class autonState
 {
@@ -107,109 +92,7 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 	return LV_RES_OK;
 }
 
-enum class wingsState
-{
-	RETRACTED,
-	RETRACTING,
-	EXTENDED,
-	EXTENDING
-};
 
-wingsState wingsCurrentStatus = wingsState::RETRACTED;
-
-// activate wings function designed for minimal gear slip and motor burnout
-void toggleWings()
-{
-	// get the state of wings:
-
-	if (wings.getActualVelocity() > 10) // wings are extending
-	{
-		wingsCurrentStatus = wingsState::RETRACTING;
-		// printf("wings state: retracting\n");
-	}
-	else if (wings.getActualVelocity() < -10) // wings are retracting
-	{
-		wingsCurrentStatus = wingsState::EXTENDING;
-		// printf("wings state: extending\n");
-	}
-	else if (wings.getPosition() < -360) // wings are extended already
-	{
-		wingsCurrentStatus = wingsState::EXTENDED;
-		// printf("wings state: extended\n");
-	}
-	else if (wings.getPosition() > -360) // wings are retracted already
-	{
-		wingsCurrentStatus = wingsState::RETRACTED;
-		// printf("wings state: retracted\n");
-	}
-
-	//	act based on the state of wings
-	// printf("%f", wings.getPosition());
-
-	switch (wingsCurrentStatus)
-	{
-	case wingsState::RETRACTED:
-		wings.moveAbsolute(-1120, 200);
-		// printf("wings action: was retracted -> is now extending\n");
-		break;
-
-	case wingsState::RETRACTING:
-		wings.moveAbsolute(-1120, 200);
-		// printf("wings action: was retracting -> is now extending\n");
-		break;
-
-	case wingsState::EXTENDED:
-		wings.moveAbsolute(0, 200);
-		// printf("wings action: was extended -> is now retracting\n");
-		break;
-
-	case wingsState::EXTENDING:
-		wings.moveAbsolute(0, 200);
-		// printf("wings action: was extending -> is now retracting\n");
-		break;
-	}
-}
-
-void resetGear()
-{
-	while (puncher.getTorque() < .6)
-	{
-		puncher.moveVelocity(100);
-	}
-	puncher.moveVelocity(0);
-	puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-}
-
-void punch()
-{
-	puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-
-	if (puncher.getTorque() > 1.1 && puncher.getTorque() < 2.2)
-	{
-		puncher.moveVelocity(1);
-	}
-	else
-	{
-		puncher.moveVelocity(100);
-	}
-}
-
-void restartChassis()
-{
-	// chassis is set to coast mode -> motors dont forcefully stop, they coast
-	chassis->stop();
-	wings.moveVelocity(0);
-	puncher.moveVelocity(0);	  // stop everything on the robot
-	chassis->setMaxVelocity(200); // max velocity of 200 just in case
-	reversed = false;			  // forward on joysticks -> wings are in the front
-}
-
-void stopAll() // stops everything
-{
-	chassis->stop();
-	wings.moveVelocity(0);
-	puncher.moveVelocity(0);
-}
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -267,8 +150,8 @@ void initialize() // initialize the GIU
 	// log motor temps
 	std::cout << pros::millis() << "\n"
 			  << pros::millis() << ": motor temps:" << std::endl;
-	std::cout << pros::millis() << ": wings: " << wings.getTemperature() << std::endl;
-	std::cout << pros::millis() << ": puncher: " << puncher.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": flywheel: " << flywheel.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": lift: " << lift.getTemperature() << std::endl;
 }
 
 /**
@@ -279,7 +162,9 @@ void initialize() // initialize the GIU
 
 void disabled()
 {
-	stopAll();
+	chassis->stop();
+	flywheel.moveVelocity(0);
+	lift.moveVelocity(0);
 }
 
 /**
@@ -306,15 +191,18 @@ void competition_initialize() {}
  */
 void autonomous()
 {
-	restartChassis();
+	chassis->stop();
+	flywheel.moveVelocity(0);
+	lift.moveVelocity(0);
+	chassis->setMaxVelocity(200);
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-	puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-	wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	flywheel.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	lift.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 	auto timer = TimeUtilFactory().create().getTimer();
 	timer->placeMark();
 
-	auto puncherTimer = TimeUtilFactory().create().getTimer();
-	puncherTimer->placeMark();
+	auto flywheelTimer = TimeUtilFactory().create().getTimer();
+	flywheelTimer->placeMark();
 
 	if (autonSelection == autonState::off)
 		autonSelection = autonState::opSide; // use opside [the better side for us] if we havent selected an auton
@@ -323,74 +211,22 @@ void autonomous()
 	{
 	case autonState::opSide:
 		// opponent goalside auton
-		// chassis->setState({2_ft, 0_ft, 0_deg});
 		chassis->setState({0_ft, 24_in, 0_deg});
-		chassis->driveToPoint({30_in, 2_in});
+		profileController->generatePath(
+			{{0_ft, 0_ft, 0_deg}, {2_ft, 0_ft, 0_deg}}, "A");
+		// Make the chassis follow the path
+		profileController->setTarget("A");
+		profileController->waitUntilSettled();
 
-		// diagram.red & digram.green lines: push the ball that starts infront of the
-		// robot to the goal -> go back and hit the ball with more force into the goal
-		chassis->driveToPoint({.4_ft, 3.5_ft});
-		chassis->driveToPoint({0_ft, 2_ft});
-		chassis->driveToPoint({0_ft, 3.8_ft});
-
-		chassis->setState({0_ft, 3.8_ft}); // change this to where ever the robot ends up while testing
-
-		chassis->turnToAngle(90_deg); // rotate
-
-		// diagram.blue & diagram.white lines: move back -> rotate -> open wings
-		chassis->driveToPoint({1_ft, 1.3_ft});
-		chassis->turnToAngle(90_deg);
-		toggleWings();
-
-		// diagram.lightBlue & diagram.white lines: move forward to push the
-		// matchload ball and retract the wings
-		chassis->driveToPoint({2_ft, 1_ft});
-		toggleWings();
-
-		// diagram.pink line: push the matchload ball and the one under the
-		// hang bar to my zone
-		chassis->driveToPoint({3_ft, .2_ft});
-		chassis->driveToPoint({4_ft, .2_ft});
-		chassis->driveToPoint({6_ft, .2_ft});
-		// opponent goalside auton end
 		break;
 
 	case autonState::allySide:
 		// ally goalside auton
 		chassis->setState({8_ft, 0_ft, 0_deg});
 
-		// take the ball out of the matchload zone
-
-		chassis->driveToPoint({9_ft, 1.8_ft});
-		chassis->turnToAngle(90_deg);			// rotate
-		chassis->driveToPoint({11_ft, 1.3_ft}); // drive next to matchload zone
-
-		chassis->turnToAngle(90_deg); // rotate
-		toggleWings();
-		// open wings
-
-		chassis->driveToPoint({8.4_ft, 1.4_ft}); // go back to take the ball out of the matchload zone
-
-		chassis->setState({8.4_ft, 1.4_ft, 0_deg}); // change this to where ever the robot ends up while testing
-		toggleWings();
-		// close wings
-
-		// push ball infornt into goal
-		chassis->driveToPoint({8.8_ft, 3.2_ft});
-		chassis->driveToPoint({8_ft, 4_ft});
-		chassis->driveToPoint({7_ft, 4.8_ft});
-
-		// rotate and extend wings
-		// extend wings
-		toggleWings();
-
-		chassis->turnToAngle(90_deg);
-		// ally goalside auton end
-		chassis->driveToPoint({9.7_ft, 4.5_ft});
-
 		break;
 	case autonState::skills:
-		chassis->setState({2_ft, 0_ft, 0_deg});
+		chassis->setState({24_in, 0_ft, 0_deg});
 
 		chassis->driveToPoint({.4_ft, 3.5_ft});
 
@@ -398,47 +234,15 @@ void autonomous()
 		chassis->driveToPoint({1_ft, 1.1_ft});
 		chassis->turnToPoint({9_ft, 5_ft});
 
-		// punch for 35 seconds
 
-		// Move the puncher for the specified duration
-		while (puncherTimer->getDtFromMark().convert(second) < 30.0)
+		// Move the flywheel for the specified duration
+		while (flywheelTimer->getDtFromMark().convert(second) < 30.0)
 		{
-			punch();
+			flywheel.moveVelocity(600);
 		}
-
-		// drive up to the middle pipe and turn to face the goal
-		chassis->driveToPoint({4_ft, 0_ft});
-
-		// activate wings and drive forward to push the ball into the offensive zone
-		chassis->driveToPoint({8_ft, 0_ft});
-		chassis->driveToPoint({9.2_ft, 1.5_ft});
-
-		chassis->driveToPoint({7.2_ft, 4.5_ft});
-		chassis->turnToAngle(90_deg);
-		toggleWings();
-		chassis->driveToPoint({9.5_ft, 6_ft});
-
-		// go to right side of goal and push balls in
-		chassis->driveToPoint({7.2_ft, 9_ft});
-		chassis->driveToPoint({9.5_ft, 7_ft});
-
-		chassis->driveToPoint({7.5_ft, 3.5_ft});
-		chassis->driveToPoint({9.5_ft, 5_ft});
-
-		// go to left side of goal and push balls in
-		chassis->driveToPoint({9_ft, 1_ft});
-		chassis->driveToPoint({10_ft, 3.5_ft});
-
 		break;
 
 	case autonState::testing:
-		// chassis->setState({0_ft, 24_in, 0_deg});
-		// chassis->driveToPoint({30_in, 2_in});
-
-		chassis->setState({0_ft, 8_ft, 0_deg});
-		chassis->driveToPoint({3_ft, 11.5_ft});
-		chassis->driveToPoint({2_ft, 11.5_ft});
-		chassis->driveToPoint({3_ft, 11.5_ft});
 
 		break;
 		// will be testing the rotations and the threshold for this function
@@ -449,51 +253,33 @@ void autonomous()
 	std::cout << pros::millis() << ": auton took " << timer->getDtFromMark().convert(second) << " seconds" << std::endl;
 
 	// Stop all motors
-	restartChassis();
+	chassis->stop();
+	flywheel.moveVelocity(0);
+	lift.moveVelocity(0);
 }
 
 void opcontrol()
 {
-	restartChassis();
+	chassis->stop();
+	flywheel.moveVelocity(0);
+	lift.moveVelocity(0);
+	chassis->setMaxVelocity(200);
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-	wings.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	bool punchRelease = false;
+	flywheel.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	lift.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+
+	bool reversed = false;
+
+	bool flywheelOn = false;
+
+	bool liftGoingUp = false;
+
+	bool liftIsUp = false;
 
 	while (true)
 	{
-		if (puncher.getTorque() < .5)
-		{
-			puncher.tarePosition(); // reset postion when puncher snaps back up
-		}
 
-		if (puncherRelease.changedToPressed())
-		{
-
-			// print the torque of the puncher
-
-			printf("\n puncher torque pr: %f", puncher.getTorque());
-
-			punchRelease = !punchRelease;
-			if (punchRelease)
-			{
-				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-			}
-			else if (!punchRelease)
-			{
-				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-			}
-		}
-
-		if (puncherSingleFire.changedToReleased())
-		{
-			printf("\n puncher torque psf: %f", puncher.getTorque());
-		}
-
-		// if (puncher.getTorque() < .7)
-		// {
-		// 	puncher.tarePosition(); // reset postion when puncher snaps back up
-		// }
+		// chassis controls and stuff
 
 		if (reverseButton.changedToPressed()) // reverse robot controls toggle if button is pressed
 		{
@@ -518,82 +304,56 @@ void opcontrol()
 
 		// Pass the manipulated joystick values to tank drive thing
 
-		// if wingsout is pressed then move the wings and keep the wings on hold, else wings motor is set to 0 and
-		// coasts to a stop
-
-		if (wingsToggle.isPressed())
+		// flywheel controls and stuff
+		if (flywheelForward.isPressed())
 		{
-			// printf("\n wings toggle button is pressed");
-			toggleWings();
-			// toggle wings is pushed
+			flywheel.moveVelocity(600);
+		}
+		else if (flywheelBackward.isPressed())
+		{
+			flywheel.moveVelocity(-600);
+		}
+		else if (flywheelToggle.changedToPressed())
+		{
+			flywheelOn = !flywheelOn;
+		}
+		else if (flywheelOn)
+		{
+			flywheel.moveVelocity(600);
+		}
+		else
+		{
+			flywheel.moveVelocity(0);
 		}
 
-		if (wingsIn.isPressed())
+		// lift controls and stuff
+		if (liftUpManual.isPressed())
 		{
-			wings.moveVelocity(200);
-			// r1 is pushed
+			lift.moveVelocity(100);
 		}
-		else if (wingsOut.isPressed())
+		else if (liftDownManual.isPressed())
 		{
-			wings.moveVelocity(-200);
-			// r2 is pushed
+			lift.moveVelocity(-100);
 		}
-		else if (wingsOut.changedToReleased() || wingsIn.changedToReleased())
+		else if (liftToggle.changedToPressed())
 		{
-			wings.moveVelocity(0);
-			// printf("\n wings are set to 0 velocity");
+			liftGoingUp = !liftGoingUp;
 		}
-
-		// single fire pucnher button setup
-		if (puncherSingleFire.isPressed())
+		else if (liftGoingUp)
 		{
-			punch();
+			lift.moveAbsolute(500, 100);
+			liftGoingUp = false;
+			liftIsUp = true;
 		}
-
-		// if puncherToggle is pressed then keep the puncher motor on max speed and keep the puncher on coast,
-		// else puncher motor is set to 0 and coasts to a stop
-
-		if (puncherToggle.changedToPressed())
+		else if (!liftGoingUp && liftIsUp)
 		{
-			puncherToggled = !puncherToggled; // Button was just pressed, toggle the state
+			lift.moveAbsolute(0, 100);
+			liftIsUp = false;
 		}
-
-		if (puncherToggled)
+		else
 		{
-			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-
-			punch();
+			lift.moveVelocity(0);
 		}
-
-		if (puncherDown.changedToPressed())
-		{
-			puncherIsDown = !puncherIsDown;
-			// reset the absolute position of the puncher to 0
-			resetGear();
-			puncher.tarePosition();
-			puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-			puncher.moveAbsolute(170, 100);
-
-			if (!puncherIsDown)
-			{
-				puncher.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-				puncher.moveAbsolute(0, 100);
-			}
-		}
-
-		// move the puncher forwards until the torque is greater than 2
-
-		if (puncherSingleFire.changedToReleased() || (!puncherToggled && !puncherSingleFire.isPressed() && !puncherIsDown))
-		{
-
-			puncher.moveVelocity(0);
-		}
-
-		// testing the indivudual motors
-
-		// if down arrow and up arrow and x and b are pressed at the same time then motor test is opposite of what it was
-
-		// printf( "\n wings position: %f"  , wings.getPosition());
 
 		pros::delay(20); // delay that is required for pros to work
 						 // default delay of 20ms but i can try 10ms later to see if its better
