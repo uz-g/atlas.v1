@@ -42,26 +42,30 @@ auto chassis = ChassisControllerBuilder()
 				   .withMotors(
 					   {-LEFT_MTR1, -LEFT_MTR2, -LEFT_MTR3},
 					   {RIGHT_MTR1, RIGHT_MTR2, RIGHT_MTR3}) // left motor is reversed
-				   .withDimensions(
-					   {AbstractMotor::gearset::green, (60.0 / 36.0)}, // green motor cartridge, 60:36 gear ratio
-					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
-
-				   .withSensors(
-					   RotationSensor{xRotation},	   // Left encoder in V5 port 1
-					   RotationSensor{yRotation, true} // Right encoder in V5 port 2 (reversed)
-					   )
-				   .withOdometry({{2.75_in, 7_in}, quadEncoderTPR}) // 2.75 inch wheels, 7 inch wheelbase width
 				   .withGains(
 					   {kPDist, kIDist, kDDist}, // distance controller gains (p, i, d)
 					   {kPTurn, kITurn, kDTurn}, // turn controller gains (p, i, d)
 					   {kPAngle, kIAngle, kDAngle}	 // angle controller gains (helps drive straight) (p, i, d)
 					   )
+				   .withSensors(
+					   RotationSensor{xRotation},	   // Left encoder in V5 port 1
+					   RotationSensor{yRotation, true} // Right encoder in V5 port 2 (reversed)
+					   )
+				   .withDimensions(
+					   {AbstractMotor::gearset::green, (60.0 / 36.0)}, // green motor cartridge, 60:36 gear ratio
+					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
+
+				   .withOdometry({{2.75_in, 7_in}, quadEncoderTPR}) // 2.75 inch wheels, 7 inch wheelbase width
 				   .buildOdometry();
 
 // create chassis controller pid
 
 auto profileController = AsyncMotionProfileControllerBuilder()
-							 .withLimits({kMaxVel, kMaxAccel, kMaxJerk}) // double maxVel double maxAccel double maxJerk
+							 .withLimits({
+								1.06 * .9, 
+								2.00 * .9,
+								10.00 * .9
+							 }) // double maxVel double maxAccel double maxJerk
 							 .withOutput(chassis)
 							 .buildMotionProfileController();
 

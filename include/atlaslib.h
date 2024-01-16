@@ -16,20 +16,15 @@ const int xRotation = 7;
 
 // distance controller gains
 const float kPDist = 0.0001;
-const float kIDist = 0.0002;
-const float kDDist = 0.0010002;
+const float kIDist = 0.0000;
+const float kDDist = 0.0001;
 
 // turn controller gains
-const float kPTurn = 0.0001;
-const float kITurn = 0.0002;
-const float kDTurn = 0.0010002;
+const float kPTurn = 0.0000;
+const float kITurn = 0.0001;
+const float kDTurn = 0.0000;
 
 // angle controller gains
 const float kPAngle = 0.0001;
-const float kIAngle = 0.0002;
-const float kDAngle = 0.0010002;
-
-const double kMaxVel = 5.6;   // inches per second
-const double kMaxAccel = 1.5; // desired inches per second squared acceleration
-const double kMaxJerk = .9;   // desired inches per second cubed jerk (rate of change of acceleration)
-
+const float kIAngle = 0.000;
+const float kDAngle = 0.0001;
