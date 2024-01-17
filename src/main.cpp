@@ -50,7 +50,7 @@ auto chassis = ChassisControllerBuilder()
 // cast to chassis controller integrated
 
 auto profileController = AsyncMotionProfileControllerBuilder()
-							 .withLimits( //base values * modifier values
+							 .withLimits( // base values * modifier values
 								 {1.00 * .99,
 								  2.00 * .8,
 								  10.00 * .8}) // double maxVel double maxAccel double maxJerk
