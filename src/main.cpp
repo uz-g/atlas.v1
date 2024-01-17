@@ -46,7 +46,10 @@ auto chassis = ChassisControllerBuilder()
 					   {{3.25_in, 12_in}, imev5GreenTPR})			   // 3.25 inch wheels, 14.75 inch wheelbase width
 
 				   .withMaxVelocity(200)
-				   .withOdometry({{2.75_in, 7_in}, quadEncoderTPR}) // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
+				   .withOdometry(
+					{{2.75_in, 7_in}, 
+					quadEncoderTPR}
+					) // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
 				   .buildOdometry();
 
 auto profileController = AsyncMotionProfileControllerBuilder()
