@@ -2,6 +2,7 @@
 #include "atlaslib.h"
 #include <fstream>
 #include "okapi/api.hpp"
+#include <iostream>
 
 using namespace okapi;
 using namespace std;
@@ -44,10 +45,9 @@ auto chassis = ChassisControllerBuilder()
 					   {AbstractMotor::gearset::green, (60.0 / 36.0)}, // green motor cartridge, 60:36 gear ratio
 					   {{3.25_in, 12_in}, imev5GreenTPR})			   // 3.25 inch wheels, 14.75 inch wheelbase width
 
-				   .withOdometry({{2.75_in, 7_in}, quadEncoderTPR}) // 2.75 inch wheels, 7 inch wheelbase width
+				   .withMaxVelocity(200)
+				   .withOdometry({{2.75_in, 7_in}, quadEncoderTPR}) // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
 				   .buildOdometry();
-
-// cast to chassis controller integrated
 
 auto profileController = AsyncMotionProfileControllerBuilder()
 							 .withLimits( // base values * modifier values
