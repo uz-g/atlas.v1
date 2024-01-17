@@ -32,9 +32,9 @@ auto chassis = ChassisControllerBuilder()
 					   {-LEFT_MTR1, -LEFT_MTR2, -LEFT_MTR3},
 					   {RIGHT_MTR1, RIGHT_MTR2, RIGHT_MTR3}) // left motor is reversed
 				   .withGains(
-					   {kPDist, kIDist, kDDist},   // distance controller gains (p, i, d)
-					   {kPTurn, kITurn, kDTurn},   // turn controller gains (p, i, d)
-					   {kPAngle, kIAngle, kDAngle} // angle controller gains (helps drive straight) (p, i, d)
+					   {dkP, dkI, dkD}, // distance controller gains (p, i, d)
+					   {tkP, tkI, tkD}, // turn controller gains (p, i, d)
+					   {akP, akI, akD}	// angle controller gains (helps drive straight) (p, i, d)
 					   )
 				   .withSensors(
 					   RotationSensor{xRotationSensor},		 // Left encoder in V5 port 1
@@ -47,12 +47,13 @@ auto chassis = ChassisControllerBuilder()
 				   .withOdometry({{2.75_in, 7_in}, quadEncoderTPR}) // 2.75 inch wheels, 7 inch wheelbase width
 				   .buildOdometry();
 
-// create chassis controller pid
+// cast to chassis controller integrated
 
 auto profileController = AsyncMotionProfileControllerBuilder()
-							 .withLimits({1.06 * .9,
-										  2.00 * .9,
-										  10.00 * .9}) // double maxVel double maxAccel double maxJerk
+							 .withLimits( //base values * modifier values
+								 {1.00 * .99,
+								  2.00 * .8,
+								  10.00 * .8}) // double maxVel double maxAccel double maxJerk
 							 .withOutput(chassis)
 							 .buildMotionProfileController();
 
@@ -91,8 +92,6 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 	autonSelection = autonState::skills;
 	return LV_RES_OK;
 }
-
-
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -198,12 +197,9 @@ void autonomous()
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 	flywheel.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	lift.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-	auto timer = TimeUtilFactory().create().getTimer();
+	std::unique_ptr<okapi::AbstractTimer> timer = TimeUtilFactory().create().getTimer();
 	timer->placeMark();
-
-	auto flywheelTimer = TimeUtilFactory().create().getTimer();
-	flywheelTimer->placeMark();
-
+	std::unique_ptr<okapi::AbstractTimer> flywheelTimer = TimeUtilFactory().create().getTimer();
 	if (autonSelection == autonState::off)
 		autonSelection = autonState::opSide; // use opside [the better side for us] if we havent selected an auton
 
@@ -211,35 +207,100 @@ void autonomous()
 	{
 	case autonState::opSide:
 		// opponent goalside auton
-		chassis->setState({0_ft, 24_in, 0_deg});
+		chassis->setState({0_in, 31_in, 0_deg}); // starting pos of middle of robot
+
+		// Generate a path that hits a ball into the goal
 		profileController->generatePath(
-			{{0_ft, 0_ft, 0_deg}, {2_ft, 0_ft, 0_deg}}, "A");
+			{{0_in, 24_in, 0_deg}, {42_in, 0_in, 0_deg}, {36_in, 0_in, 0_deg}, {42_in, 0_in, 0_deg}}, "A");
 		// Make the chassis follow the path
 		profileController->setTarget("A");
+		lift.moveAbsolute(500, 100);
 		profileController->waitUntilSettled();
+
+		// Generate a path that descores the matchload ball
+		profileController->generatePath(
+			{{42_in, 0_in, 0_deg}, {10_in, 14_in, 90_deg}, {20_in, 71_in, 90_deg}}, "B");
+		profileController->setTarget("B");
+		profileController->waitUntilSettled();
+
+		disabled(); // stop all motors
+
+		// this auton scores a ball into the goal, descores the
+		// matchload ball, and moves the the lift bar and touches it
 
 		break;
 
 	case autonState::allySide:
 		// ally goalside auton
-		chassis->setState({8_ft, 0_ft, 0_deg});
+		chassis->setState({0_in, 96_in, 0_deg});
 
+		// Generate a path that hits a ball into the goal
+		profileController->generatePath(
+			{{0_in, 96_in, 0_deg}, {42_in, 118_in, 0_deg}, {36_in, 118_in, 0_deg}, {42_in, 118_in, 0_deg}}, "C");
+		profileController->setTarget("C");
+		profileController->waitUntilSettled();
+
+		// Generate a path that scroes the middle ball in
+		profileController->generatePath(
+			{{42_in, 118_in, 0_deg}, {34_in, 100_in, 0_deg}, {76_in, 90_in, 0_deg}, {76_in, 90_in, 90_deg}, {76_in, 115_in, 90_deg}}, "D");
+		profileController->setTarget("D");
+		profileController->waitUntilSettled();
+
+		// Generate a path that touches the lift bar
+		profileController->generatePath(
+			{{76_in, 115_in, 90_deg}, {50_in, 98_in, 180_deg}, {6_in, 96_in, 270_deg}, {4_in, 74_in, 270_deg}}, "E");
+		profileController->setTarget("E");
+		profileController->waitUntilSettled();
+
+		disabled(); // stop all motors
+
+		// this auton scores a ball into the goal, scores the middle
+		// ball, and moves the the lift bar and touches it
 		break;
+
 	case autonState::skills:
-		chassis->setState({24_in, 0_ft, 0_deg});
+		chassis->setState({0_in, 24_in, 0_deg});
 
-		chassis->driveToPoint({.4_ft, 3.5_ft});
+		// Generate a path that hits a ball into the goal
+		profileController->generatePath(
+			{{0_in, 24_in, 0_deg}, {42_in, 0_in, 0_deg}, {36_in, 0_in, 0_deg}, {42_in, 0_in, 0_deg}}, "F");
+		// Make the chassis follow the path
+		profileController->setTarget("F");
+		lift.moveAbsolute(500, 100);
+		profileController->waitUntilSettled();
 
-		// move to matchload pipe and turn to face offensive zone
-		chassis->driveToPoint({1_ft, 1.1_ft});
-		chassis->turnToPoint({9_ft, 5_ft});
-
+		// Generate a path that touches the matchload bar
+		profileController->generatePath(
+			{{42_in, 0_in, 0_deg}, {10_in, 14_in, 60_deg}}, "G");
+		profileController->setTarget("G");
+		profileController->waitUntilSettled();
 
 		// Move the flywheel for the specified duration
-		while (flywheelTimer->getDtFromMark().convert(second) < 30.0)
+		flywheelTimer->placeMark();
+		while (flywheelTimer->getDtFromMark().convert(second) < 27.5)
 		{
 			flywheel.moveVelocity(600);
 		}
+
+		// go to offensive zone and score the balls from front
+		chassis->setState({10_in, 14_in, 60_deg});
+		chassis->driveToPoint({4_in, 108_in});
+		chassis->driveToPoint({30_in, 108_in});
+		chassis->driveToPoint({32_in, 80_in});
+		chassis->driveToPoint({48_in, 120_in}); // hit 1 from close side
+		chassis->driveToPoint({36_in, 108_in});
+		chassis->driveToPoint({63_in, 120_in}); // hit 2 from middle
+		chassis->driveToPoint({54_in, 105_in});
+		chassis->driveToPoint({78_in, 120_in}); // hit 3 from far side
+
+		// go to the far side and score the balls from far side
+		chassis->driveToPoint({128_in, 96_in});
+		chassis->driveToPoint({108_in, 132_in});
+
+		// go to close side and score the balls from close side
+		chassis->driveToPoint({128_in, 96_in});
+		chassis->driveToPoint({12_in, 96_in});
+		chassis->driveToPoint({42_in, 130_in});
 		break;
 
 	case autonState::testing:

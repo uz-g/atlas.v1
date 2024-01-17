@@ -15,19 +15,19 @@ const int yRotationSensor = 4;
 const int xRotationSensor = 7;
 
 // distance controller gains
-const float kPDist = 0.0001;
-const float kIDist = 0.0000;
-const float kDDist = 0.0001;
+const float dkP = 0.0001;
+const float dkI = 0.0000;
+const float dkD = 0.0001;
 
 // turn controller gains
-const float kPTurn = 0.0000;
-const float kITurn = 0.0001;
-const float kDTurn = 0.0000;
+const float tkP = 0.0000;
+const float tkI = 0.0001;
+const float tkD = 0.0000;
 
 // angle controller gains
-const float kPAngle = 0.0001;
-const float kIAngle = 0.000;
-const float kDAngle = 0.0001;
+const float akP = 0.0001;
+const float akI = 0.000;
+const float akD = 0.0001;
 
 // iterative stuff
 const float ikP = 0.0001;
