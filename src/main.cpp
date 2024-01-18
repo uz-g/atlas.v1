@@ -3,6 +3,7 @@
 #include <fstream>
 #include "okapi/api.hpp"
 #include <iostream>
+#include "lemlib/api.hpp"
 
 using namespace okapi;
 using namespace std;
@@ -34,11 +35,11 @@ auto chassis = ChassisControllerBuilder()
 					   {tkP, tkI, tkD}, // turn controller gains (p, i, d)
 					   {akP, akI, akD}	// angle controller gains (helps drive straight) (p, i, d)
 					   )
-				   .withDerivativeFilters( // filters for the controllers makes it smoother and stuff [i have no idea]
+				   .withDerivativeFilters(						// filters for the controllers makes it smoother and stuff [i have no idea]
 					   std::make_unique<DemaFilter>(0.2, 0.15), // Distance controller filter
 					   std::make_unique<DemaFilter>(0.2, 0.15), // Turn controller filter
-					   std::make_unique<DemaFilter>(0.2, 0.15)  // Angle controller filter
-					   )//dema = dual exponential moving average filters - smooths out the controller output and make it less jerky
+					   std::make_unique<DemaFilter>(0.2, 0.15)	// Angle controller filter
+					   )										// dema = dual exponential moving average filters - smooths out the controller output and make it less jerky
 				   .withSensors(
 					   RotationSensor{xRotationSensor},		 // Left encoder in V5 port 1
 					   RotationSensor{yRotationSensor, true} // Right encoder in V5 port 2 (reversed)
@@ -60,6 +61,61 @@ auto profileController = AsyncMotionProfileControllerBuilder()
 								  10.00 * .8}) // double maxVel double maxAccel double maxJerk
 							 .withOutput(chassis)
 							 .buildMotionProfileController();
+// pros create motor stuff for lemlib [im only using lemlib for the pure pursuit stuff]
+pros::Motor lfm(LEFT_MTR1, pros::E_MOTOR_GEARSET_18, true);
+pros::Motor lmm(LEFT_MTR2, pros::E_MOTOR_GEARSET_18, true);
+pros::Motor lbm(LEFT_MTR3, pros::E_MOTOR_GEARSET_18, true);
+pros::Motor rfm(RIGHT_MTR1, pros::E_MOTOR_GEARSET_18, false);
+pros::Motor rmm(RIGHT_MTR2, pros::E_MOTOR_GEARSET_18, false);
+pros::Motor rbm(RIGHT_MTR3, pros::E_MOTOR_GEARSET_18, false);
+
+pros::MotorGroup leftDrive({lfm, lmm, lbm});
+pros::MotorGroup rightDrive({rfm, rmm, rbm});
+
+lemlib::Drivetrain_t drivetrain{
+	&leftDrive,	 // left drivetrain motors
+	&rightDrive, // right drivetrain motors
+	13,			 // track width
+	3.25,		 // wheel diameter
+	333			 // wheel rpm
+};
+pros::Rotation rotX(xRotationSensor, false); // port 1, not reversed
+pros::Rotation rotY(yRotationSensor, true);	 // port 1, not reversed
+lemlib::TrackingWheel trackWheel1(&rotX, 2.75, 4.3);
+lemlib::TrackingWheel trackWheel2(&rotY, 2.75, 4.3);
+
+lemlib::OdomSensors_t sensors{
+	&trackWheel1, // vertical tracking wheel
+	nullptr,	  // no 2nd vertical tracking wheel
+	&trackWheel2, // horizontal tracking wheel
+	nullptr		  // no 2nd horizontal tracking wheel
+};
+
+// forward/backward PID
+lemlib::ChassisController_t lateralController{
+	// using default values for now
+	8,	 // kP
+	30,	 // kD
+	1,	 // smallErrorRange
+	100, // smallErrorTimeout
+	3,	 // largeErrorRange
+	500, // largeErrorTimeout
+	5	 // slew rate
+};
+
+// turning PID
+lemlib::ChassisController_t angularController{
+	// using default values for now
+	4,	 // kP
+	40,	 // kD
+	1,	 // smallErrorRange
+	100, // smallErrorTimeout
+	3,	 // largeErrorRange
+	500, // largeErrorTimeout
+	0	 // slew rate
+};
+
+lemlib::Chassis chassisLem(drivetrain, lateralController, angularController, sensors);
 
 enum class autonState
 {
@@ -97,6 +153,19 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 	return LV_RES_OK;
 }
 
+
+//lemlib screen thing
+void screen() {
+    // loop forever
+    while (true) {
+        lemlib::Pose pose = chassisLem.getPose(); // get the current position of the robot
+        pros::lcd::print(0, "x: %f", pose.x); // print the x position
+        pros::lcd::print(1, "y: %f", pose.y); // print the y position
+        pros::lcd::print(2, "heading: %f", pose.theta); // print the heading
+        pros::delay(10);
+    }
+}
+
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -106,6 +175,13 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 
 void initialize() // initialize the GIU
 {
+	// lemlib stuff
+	pros::lcd::initialize(); // initialize brain screen
+	chassisLem.calibrate();
+	pros::Task screenTask(screen); // create a task to print the position to the screen
+	chassisLem.setPose(0, 0, 0); // set the starting position of the robot
+
+	// gui stuff from djmango
 
 	// lvgl theme
 	lv_theme_t *th = lv_theme_alien_init(300, NULL); // Set a HUE value and keep font default MAGENTA
@@ -213,6 +289,8 @@ void autonomous()
 		// opponent goalside auton
 		chassis->setState({0_in, 31_in, 0_deg}); // starting pos of middle of robot
 
+		chassis->getModel()->driveVector(10, 25); // drive forward a bit in an arc turning to the right speed, yaw
+
 		// Generate a path that hits a ball into the goal
 		profileController->generatePath(
 			{{0_in, 24_in, 0_deg}, {42_in, 0_in, 0_deg}, {36_in, 0_in, 0_deg}, {42_in, 0_in, 0_deg}}, "A");
@@ -305,6 +383,9 @@ void autonomous()
 		chassis->driveToPoint({128_in, 96_in});
 		chassis->driveToPoint({12_in, 96_in});
 		chassis->driveToPoint({42_in, 130_in});
+
+
+		chassisLem.follow("path.txt", 2000, 15); //follow the path that has to be uploaded to the brain via sd card
 		break;
 
 	case autonState::testing:
