@@ -28,8 +28,8 @@ okapi::ControllerButton liftToggle(okapi::ControllerDigital::A);
 // create the chassis object/motors with the correct wheels and gearset
 auto chassis = ChassisControllerBuilder()
 				   .withMotors(
-					   {-LEFT_MTR1, -LEFT_MTR2, -LEFT_MTR3},
-					   {RIGHT_MTR1, RIGHT_MTR2, RIGHT_MTR3}) // left motor is reversed
+					   {-LEFT_MTR_B, -LEFT_MTR_M, -LEFT_MTR_F},
+					   {RIGHT_MTR_B, RIGHT_MTR_M, RIGHT_MTRF}) // left motor is reversed
 				   .withGains(
 					   {dkP, dkI, dkD}, // distance controller gains (p, i, d)
 					   {tkP, tkI, tkD}, // turn controller gains (p, i, d)
@@ -41,8 +41,8 @@ auto chassis = ChassisControllerBuilder()
 					   std::make_unique<DemaFilter>(0.2, 0.15)	// Angle controller filter
 					   )										// dema = dual exponential moving average filters - smooths out the controller output and make it less jerky
 				   .withSensors(
-					   RotationSensor{xRotationSensor},		 // Left encoder in V5 port 1
-					   RotationSensor{yRotationSensor, true} // Right encoder in V5 port 2 (reversed)
+					   RotationSensor{xRotationSensor},		 // vertical encoder in V5 port 1
+					   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
 					   )
 				   .withDimensions(
 					   {AbstractMotor::gearset::green, (60.0 / 36.0)}, // green motor cartridge, 60:36 gear ratio
@@ -51,23 +51,33 @@ auto chassis = ChassisControllerBuilder()
 				   .withMaxVelocity(200)
 				   .withOdometry(
 					   {{2.75_in, 7_in},
-						quadEncoderTPR}) // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
+						quadEncoderTPR},
+					   StateMode::CARTESIAN)
+				   // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
+				   // 1 horizontal tracking wheel and 1 vertical tracking wheel
+
 				   .buildOdometry();
 
 auto profileController = AsyncMotionProfileControllerBuilder()
 							 .withLimits( // base values * modifier values
-								 {1.00 * .99,
-								  2.00 * .8,
-								  10.00 * .8}) // double maxVel double maxAccel double maxJerk
+								 {1.439 * .99, //max velocity in m/s calculated using squiggles constraints * a modifier that i want
+								 //max acceletation
+								 //these motor can go to 1.05 nm of torque, will use .9 nm of torque to be safe
+								 // estimatd weight of 15 kg
+								 //8.7219866748 m/s/s max acceleration, ill use 4 [i found this on a forum maybe its a good idea to
+								 // keep it low] and apply a modifier of .8 - 2 may also be a good default value
+								  4.00 * .8, 
+								  8.00 * .8 //max jerk should be around double max acceleration
+								  }) // double maxVel double maxAccel double maxJerk
 							 .withOutput(chassis)
 							 .buildMotionProfileController();
 // pros create motor stuff for lemlib [im only using lemlib for the pure pursuit stuff]
-pros::Motor lfm(LEFT_MTR1, pros::E_MOTOR_GEARSET_18, true);
-pros::Motor lmm(LEFT_MTR2, pros::E_MOTOR_GEARSET_18, true);
-pros::Motor lbm(LEFT_MTR3, pros::E_MOTOR_GEARSET_18, true);
-pros::Motor rfm(RIGHT_MTR1, pros::E_MOTOR_GEARSET_18, false);
-pros::Motor rmm(RIGHT_MTR2, pros::E_MOTOR_GEARSET_18, false);
-pros::Motor rbm(RIGHT_MTR3, pros::E_MOTOR_GEARSET_18, false);
+pros::Motor lfm(LEFT_MTR_B, pros::E_MOTOR_GEARSET_18, true);
+pros::Motor lmm(LEFT_MTR_M, pros::E_MOTOR_GEARSET_18, true);
+pros::Motor lbm(LEFT_MTR_F, pros::E_MOTOR_GEARSET_18, true);
+pros::Motor rfm(RIGHT_MTR_B, pros::E_MOTOR_GEARSET_18, false);
+pros::Motor rmm(RIGHT_MTR_M, pros::E_MOTOR_GEARSET_18, false);
+pros::Motor rbm(RIGHT_MTRF, pros::E_MOTOR_GEARSET_18, false);
 
 pros::MotorGroup leftDrive({lfm, lmm, lbm});
 pros::MotorGroup rightDrive({rfm, rmm, rbm});
@@ -153,17 +163,18 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 	return LV_RES_OK;
 }
 
-
-//lemlib screen thing
-void screen() {
-    // loop forever
-    while (true) {
-        lemlib::Pose pose = chassisLem.getPose(); // get the current position of the robot
-        pros::lcd::print(0, "x: %f", pose.x); // print the x position
-        pros::lcd::print(1, "y: %f", pose.y); // print the y position
-        pros::lcd::print(2, "heading: %f", pose.theta); // print the heading
-        pros::delay(10);
-    }
+// lemlib screen thing
+void screen()
+{
+	// loop forever
+	while (true)
+	{
+		lemlib::Pose pose = chassisLem.getPose();		// get the current position of the robot
+		pros::lcd::print(0, "x: %f", pose.x);			// print the x position
+		pros::lcd::print(1, "y: %f", pose.y);			// print the y position
+		pros::lcd::print(2, "heading: %f", pose.theta); // print the heading
+		pros::delay(10);
+	}
 }
 
 /**
@@ -179,7 +190,7 @@ void initialize() // initialize the GIU
 	pros::lcd::initialize(); // initialize brain screen
 	chassisLem.calibrate();
 	pros::Task screenTask(screen); // create a task to print the position to the screen
-	chassisLem.setPose(0, 0, 0); // set the starting position of the robot
+	chassisLem.setPose(0, 0, 0);   // set the starting position of the robot
 
 	// gui stuff from djmango
 
@@ -384,8 +395,7 @@ void autonomous()
 		chassis->driveToPoint({12_in, 96_in});
 		chassis->driveToPoint({42_in, 130_in});
 
-
-		chassisLem.follow("path.txt", 2000, 15); //follow the path that has to be uploaded to the brain via sd card
+		chassisLem.follow("path.txt", 2000, 15); // follow the path that has to be uploaded to the brain via sd card
 		break;
 
 	case autonState::testing:

@@ -3,12 +3,12 @@
 
 #pragma
 
-const int LEFT_MTR1 = 10;
-const int LEFT_MTR2 = 9;
-const int LEFT_MTR3 = 8;
-const int RIGHT_MTR1 = 1;
-const int RIGHT_MTR2 = 2;
-const int RIGHT_MTR3 = 3;
+const int LEFT_MTR_B = 10;
+const int LEFT_MTR_M = 9;
+const int LEFT_MTR_F = 8;
+const int RIGHT_MTR_B = 1;
+const int RIGHT_MTR_M = 2;
+const int RIGHT_MTRF = 3;
 const int LIFT = 6;
 const int FLYWHEEL = 5;
 const int yRotationSensor = 4;
