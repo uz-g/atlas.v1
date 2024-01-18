@@ -1,9 +1,4 @@
-#include "main.h"
 #include "atlaslib.h"
-#include <fstream>
-#include "okapi/api.hpp"
-#include <iostream>
-#include "lemlib/api.hpp"
 
 using namespace okapi;
 using namespace std;
@@ -60,17 +55,19 @@ auto chassis = ChassisControllerBuilder()
 
 auto profileController = AsyncMotionProfileControllerBuilder()
 							 .withLimits( // base values * modifier values
-								 {1.439 * .99, //max velocity in m/s calculated using squiggles constraints * a modifier that i want
-								 //max acceletation
-								 //these motor can go to 1.05 nm of torque, will use .9 nm of torque to be safe
-								 // estimatd weight of 15 kg
-								 //8.7219866748 m/s/s max acceleration, ill use 4 [i found this on a forum maybe its a good idea to
-								 // keep it low] and apply a modifier of .8 - 2 may also be a good default value
-								  4.00 * .8, 
-								  8.00 * .8 //max jerk should be around double max acceleration
-								  }) // double maxVel double maxAccel double maxJerk
+								 {
+									 1.439 * .99, // max velocity in m/s calculated using squiggles constraints * a modifier that i want
+									 // max acceletation
+									 // these motor can go to 1.05 nm of torque, will use .9 nm of torque to be safe
+									 //  estimatd weight of 15 kg
+									 // 8.7219866748 m/s/s max acceleration, ill use 4 [i found this on a forum maybe its a good idea to
+									 //  keep it low] and apply a modifier of .8 - 2 may also be a good default value
+									 4.00 * .8,
+									 8.00 * .8 // max jerk should be around double max acceleration
+								 })			   // double maxVel double maxAccel double maxJerk
 							 .withOutput(chassis)
 							 .buildMotionProfileController();
+
 // pros create motor stuff for lemlib [im only using lemlib for the pure pursuit stuff]
 pros::Motor lfm(LEFT_MTR_B, pros::E_MOTOR_GEARSET_18, true);
 pros::Motor lmm(LEFT_MTR_M, pros::E_MOTOR_GEARSET_18, true);

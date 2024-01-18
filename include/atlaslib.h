@@ -1,6 +1,8 @@
 #include "main.h"
+#include <fstream>
 #include "okapi/api.hpp"
-
+#include <iostream>
+#include "lemlib/api.hpp"
 #pragma
 
 const int LEFT_MTR_B = 10;
