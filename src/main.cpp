@@ -23,10 +23,7 @@ okapi::ControllerButton liftUpManual(okapi::ControllerDigital::L1);
 okapi::ControllerButton liftDownManual(okapi::ControllerDigital::L2);
 okapi::ControllerButton liftToggle(okapi::ControllerDigital::A);
 
-// the driver controls to be reversed
-
 // chassis
-
 // create the chassis object/motors with the correct wheels and gearset
 auto chassis = ChassisControllerBuilder()
 				   .withMotors(
@@ -37,6 +34,11 @@ auto chassis = ChassisControllerBuilder()
 					   {tkP, tkI, tkD}, // turn controller gains (p, i, d)
 					   {akP, akI, akD}	// angle controller gains (helps drive straight) (p, i, d)
 					   )
+				   .withDerivativeFilters( // filters for the controllers makes it smoother and stuff [i have no idea]
+					   std::make_unique<DemaFilter>(0.2, 0.15), // Distance controller filter
+					   std::make_unique<DemaFilter>(0.2, 0.15), // Turn controller filter
+					   std::make_unique<DemaFilter>(0.2, 0.15)  // Angle controller filter
+					   )//dema = dual exponential moving average filters - smooths out the controller output and make it less jerky
 				   .withSensors(
 					   RotationSensor{xRotationSensor},		 // Left encoder in V5 port 1
 					   RotationSensor{yRotationSensor, true} // Right encoder in V5 port 2 (reversed)
@@ -47,9 +49,8 @@ auto chassis = ChassisControllerBuilder()
 
 				   .withMaxVelocity(200)
 				   .withOdometry(
-					{{2.75_in, 7_in}, 
-					quadEncoderTPR}
-					) // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
+					   {{2.75_in, 7_in},
+						quadEncoderTPR}) // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
 				   .buildOdometry();
 
 auto profileController = AsyncMotionProfileControllerBuilder()
