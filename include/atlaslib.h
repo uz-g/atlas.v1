@@ -30,8 +30,3 @@ const float tkD = 0.0000;
 const float akP = 0.0001;
 const float akI = 0.000;
 const float akD = 0.0001;
-
-// iterative stuff
-const float ikP = 0.0001;
-const float ikI = 0.0000;
-const float ikD = 0.0001;

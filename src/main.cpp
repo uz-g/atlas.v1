@@ -30,7 +30,7 @@ auto chassis = ChassisControllerBuilder()
 					   {tkP, tkI, tkD}, // turn controller gains (p, i, d)
 					   {akP, akI, akD}	// angle controller gains (helps drive straight) (p, i, d)
 					   )
-				   .withDerivativeFilters(						// filters for the controllers makes it smoother and stuff [i have no idea]
+				   .withDerivativeFilters(						// filters for the controllers makes it smoother and stuff [i actually have no idea]
 					   std::make_unique<DemaFilter>(0.2, 0.15), // Distance controller filter
 					   std::make_unique<DemaFilter>(0.2, 0.15), // Turn controller filter
 					   std::make_unique<DemaFilter>(0.2, 0.15)	// Angle controller filter
