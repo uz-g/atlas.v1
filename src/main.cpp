@@ -9,6 +9,9 @@ okapi::Motor lift(LIFT, false, okapi::AbstractMotor::gearset::red,
 okapi::Motor flywheel(FLYWHEEL, false, okapi::AbstractMotor::gearset::blue,
 					  okapi::AbstractMotor::encoderUnits::degrees);
 
+// create the 5.5 watt vex exp motor
+
+
 // create controller
 okapi::Controller masterController;
 okapi::ControllerButton reverseButton(okapi::ControllerDigital::X);
@@ -40,7 +43,7 @@ auto chassis = ChassisControllerBuilder()
 					   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
 					   )
 				   .withDimensions(
-					   {AbstractMotor::gearset::green, (60.0 / 36.0)}, // green motor cartridge, 60:36 gear ratio
+					   {AbstractMotor::gearset::green, (60.0 / 36.0)}, // green motor cartridge, 36:60 gear ratio
 					   {{3.25_in, 12_in}, imev5GreenTPR})			   // 3.25 inch wheels, 14.75 inch wheelbase width
 
 				   .withMaxVelocity(200)
@@ -420,14 +423,14 @@ void opcontrol()
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	flywheel.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	lift.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	masterController.rumble("..");
 
 	bool reversed = false;
 
 	bool flywheelOn = false;
 
-	bool liftGoingUp = false;
+	bool liftIsToggled = false;
 
-	bool liftIsUp = false;
 
 	while (true)
 	{
@@ -490,18 +493,15 @@ void opcontrol()
 		}
 		else if (liftToggle.changedToPressed())
 		{
-			liftGoingUp = !liftGoingUp;
+			liftIsToggled = !liftIsToggled;
 		}
-		else if (liftGoingUp)
+		else if (liftIsToggled)
 		{
 			lift.moveAbsolute(500, 100);
-			liftGoingUp = false;
-			liftIsUp = true;
 		}
-		else if (!liftGoingUp && liftIsUp)
+		else if (!liftIsToggled)
 		{
 			lift.moveAbsolute(0, 100);
-			liftIsUp = false;
 		}
 		else
 		{
