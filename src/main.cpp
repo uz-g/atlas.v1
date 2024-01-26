@@ -4,22 +4,24 @@ using namespace okapi;
 using namespace std;
 
 // create the motors
-okapi::Motor lift(LIFT, false, okapi::AbstractMotor::gearset::red,
-				  okapi::AbstractMotor::encoderUnits::degrees);
-okapi::Motor flywheel(FLYWHEEL, false, okapi::AbstractMotor::gearset::blue,
-					  okapi::AbstractMotor::encoderUnits::degrees);
+Motor intakeExp(INTAKE_EXP, false, okapi::AbstractMotor::gearset::green,
+				okapi::AbstractMotor::encoderUnits::degrees); // exp vex motor 5.5w
+Motor cata(CATAPULT, false, okapi::AbstractMotor::gearset::green,
+		   okapi::AbstractMotor::encoderUnits::degrees); // normal motor
+Motor cataExp(CATAPULT_EXP, false, okapi::AbstractMotor::gearset::green,
+			  okapi::AbstractMotor::encoderUnits::degrees); // exp vex motor 5.5w
 
-// create the 5.5 watt vex exp motor
+MotorGroup catapult({cata, cataExp});
 
-// create controller
-okapi::Controller masterController;
-okapi::ControllerButton reverseButton(okapi::ControllerDigital::X);
-okapi::ControllerButton flywheelToggle(okapi::ControllerDigital::R1);
-okapi::ControllerButton flywheelForward(okapi::ControllerDigital::R2);
-okapi::ControllerButton flywheelBackward(okapi::ControllerDigital::down);
-okapi::ControllerButton liftUpManual(okapi::ControllerDigital::L1);
-okapi::ControllerButton liftDownManual(okapi::ControllerDigital::L2);
-okapi::ControllerButton liftToggle(okapi::ControllerDigital::A);
+// create controller + buttons
+Controller masterController;
+ControllerButton reverseButton(okapi::ControllerDigital::X);
+ControllerButton intake(okapi::ControllerDigital::R1);
+ControllerButton outtake(okapi::ControllerDigital::R2);
+ControllerButton catapultToggle(okapi::ControllerDigital::down);
+ControllerButton catapultHold(okapi::ControllerDigital::L1);
+ControllerButton cataHang(okapi::ControllerDigital::L2);
+ControllerButton cataDescore(okapi::ControllerDigital::A);
 
 // chassis
 // create the chassis object/motors with the correct wheels and gearset
@@ -27,30 +29,26 @@ auto chassis = ChassisControllerBuilder()
 				   .withMotors(
 					   {-LEFT_MTR_B, -LEFT_MTR_M, -LEFT_MTR_F},
 					   {RIGHT_MTR_B, RIGHT_MTR_M, RIGHT_MTRF}) // left motor is reversed
-				//    .withGains(
-				// 	   {dkP, dkI, dkD}, // distance controller gains (p, i, d)
-				// 	   {tkP, tkI, tkD}, // turn controller gains (p, i, d)
-				// 	   {akP, akI, akD}	// angle controller gains (helps drive straight) (p, i, d)
-				// 	   )
-				   .withDerivativeFilters(						// filters for the controllers makes it smoother and stuff [i actually have no idea]
-					   std::make_unique<DemaFilter>(0.2, 0.15), // Distance controller filter
-					   std::make_unique<DemaFilter>(0.2, 0.15), // Turn controller filter
-					   std::make_unique<DemaFilter>(0.2, 0.15)	// Angle controller filter
-					   )										// dema = dual exponential moving average filters - smooths out the controller output and make it less jerky
-				//    .withSensors(
-				// 	   RotationSensor{xRotationSensor},		 // vertical encoder in V5 port 1
-				// 	   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
-				// 	   )
+				   .withGains(
+					   {dkP, dkI, dkD}, // distance controller gains (p, i, d)
+					   {tkP, tkI, tkD}, // turn controller gains (p, i, d)
+					   {akP, akI, akD}	// angle controller gains (helps drive straight) (p, i, d)
+					   )
+				   // dema filters were here, no longer here because i dont know how to use them
+				   // dual exponential moving average filters - smooths out the controller output and make it less jerky
+				   .withSensors(
+					   RotationSensor{xRotationSensor},		 // vertical encoder in V5 port 1
+					   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
+					   )
 				   .withDimensions(
 					   {AbstractMotor::gearset::green, (36.0 / 60.0)}, // green motor cartridge, 36:60 gear ratio
 					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
 
 				   .withMaxVelocity(200)
 				   .withOdometry(
-					   //    {{2.75_in, 7_in},
-					   // 	quadEncoderTPR},
-					   //    StateMode::CARTESIAN
-					   )
+					   {{2.75_in, 7_in},
+						quadEncoderTPR},
+					   StateMode::CARTESIAN)
 				   // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
 				   // 1 horizontal tracking wheel and 1 vertical tracking wheel
 
@@ -70,63 +68,6 @@ auto profileController = AsyncMotionProfileControllerBuilder()
 								 })			   // double maxVel double maxAccel double maxJerk
 							 .withOutput(chassis)
 							 .buildMotionProfileController();
-
-// // pros create motor stuff for lemlib [im only using lemlib for the pure pursuit stuff]
-// // every lemlib thing is commented out because it breaks everything else for some reason
-// pros::Motor lfm(LEFT_MTR_B, pros::E_MOTOR_GEARSET_18, true);
-// pros::Motor lmm(LEFT_MTR_M, pros::E_MOTOR_GEARSET_18, true);
-// pros::Motor lbm(LEFT_MTR_F, pros::E_MOTOR_GEARSET_18, true);
-// pros::Motor rfm(RIGHT_MTR_B, pros::E_MOTOR_GEARSET_18, false);
-// pros::Motor rmm(RIGHT_MTR_M, pros::E_MOTOR_GEARSET_18, false);
-// pros::Motor rbm(RIGHT_MTRF, pros::E_MOTOR_GEARSET_18, false);
-
-// pros::MotorGroup leftDrive({lfm, lmm, lbm});
-// pros::MotorGroup rightDrive({rfm, rmm, rbm});
-
-// lemlib::Drivetrain_t drivetrain{
-// 	&leftDrive,	 // left drivetrain motors
-// 	&rightDrive, // right drivetrain motors
-// 	14.75,			 // track width
-// 	3.25,		 // wheel diameter
-// 	333			 // wheel rpm
-// };
-// pros::Rotation rotX(xRotationSensor, false); // port 1, not reversed
-// pros::Rotation rotY(yRotationSensor, true);	 // port 1, not reversed
-// lemlib::TrackingWheel trackWheel1(&rotX, 2.75, 4.3);
-// lemlib::TrackingWheel trackWheel2(&rotY, 2.75, 4.3);
-
-// lemlib::OdomSensors_t sensors{
-// 	&trackWheel1, // vertical tracking wheel
-// 	nullptr,	  // no 2nd vertical tracking wheel
-// 	&trackWheel2, // horizontal tracking wheel
-// 	nullptr		  // no 2nd horizontal tracking wheel
-// };
-
-// // forward/backward PID
-// lemlib::ChassisController_t lateralController{
-// 	// using default values for now
-// 	8,	 // kP
-// 	30,	 // kD
-// 	1,	 // smallErrorRange
-// 	100, // smallErrorTimeout
-// 	3,	 // largeErrorRange
-// 	500, // largeErrorTimeout
-// 	5	 // slew rate
-// };
-
-// // turning PID
-// lemlib::ChassisController_t angularController{
-// 	// using default values for now
-// 	4,	 // kP
-// 	40,	 // kD
-// 	1,	 // smallErrorRange
-// 	100, // smallErrorTimeout
-// 	3,	 // largeErrorRange
-// 	500, // largeErrorTimeout
-// 	0	 // slew rate
-// };
-
-// lemlib::Chassis chassisLem(drivetrain, lateralController, angularController, sensors);
 
 enum class autonState
 {
@@ -241,8 +182,9 @@ void initialize() // initialize the GIU
 	// log motor temps
 	std::cout << pros::millis() << "\n"
 			  << pros::millis() << ": motor temps:" << std::endl;
-	std::cout << pros::millis() << ": flywheel: " << flywheel.getTemperature() << std::endl;
-	std::cout << pros::millis() << ": lift: " << lift.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": cata: " << cata.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": intakeExp: " << intakeExp.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": cataExp: " << cataExp.getTemperature() << std::endl;
 }
 
 /**
@@ -254,8 +196,8 @@ void initialize() // initialize the GIU
 void disabled()
 {
 	chassis->stop();
-	flywheel.moveVelocity(0);
-	lift.moveVelocity(0);
+	catapult.moveVelocity(0);
+	intakeExp.moveVelocity(0);
 }
 
 /**
@@ -282,13 +224,10 @@ void competition_initialize() {}
  */
 void autonomous()
 {
-	chassis->stop();
-	flywheel.moveVelocity(0);
-	lift.moveVelocity(0);
-	chassis->setMaxVelocity(200);
+	disabled(); // stop all motors
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-	flywheel.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	lift.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	intakeExp.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	catapult.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 	std::unique_ptr<okapi::AbstractTimer> timer = TimeUtilFactory().create().getTimer();
 	timer->placeMark();
 	std::unique_ptr<okapi::AbstractTimer> flywheelTimer = TimeUtilFactory().create().getTimer();
@@ -306,7 +245,6 @@ void autonomous()
 			{{0_in, 24_in, 0_deg}, {42_in, 0_in, 0_deg}, {36_in, 0_in, 0_deg}, {42_in, 0_in, 0_deg}}, "A");
 		// Make the chassis follow the path
 		profileController->setTarget("A");
-		lift.moveAbsolute(500, 100);
 		profileController->waitUntilSettled();
 
 		// Generate a path that descores the matchload ball
@@ -358,7 +296,6 @@ void autonomous()
 			{{0_in, 24_in, 0_deg}, {42_in, 0_in, 0_deg}, {36_in, 0_in, 0_deg}, {42_in, 0_in, 0_deg}}, "F");
 		// Make the chassis follow the path
 		profileController->setTarget("F");
-		lift.moveAbsolute(500, 100);
 		profileController->waitUntilSettled();
 
 		// Generate a path that touches the matchload bar
@@ -371,8 +308,9 @@ void autonomous()
 		flywheelTimer->placeMark();
 		while (flywheelTimer->getDtFromMark().convert(second) < 27.5)
 		{
-			flywheel.moveVelocity(600);
+			catapult.moveVelocity(200);
 		}
+		catapult.moveVelocity(0);
 
 		// go to offensive zone and score the balls from front
 		chassis->setState({10_in, 14_in, 60_deg});
@@ -399,11 +337,8 @@ void autonomous()
 
 	case autonState::testing:
 
-		chassis->setState({0_in, 24_in, 0_deg});
-		chassis->driveToPoint({80_in, 24_in});
-		chassis->driveToPoint({0_in, 24_in});
-
-
+		chassis->setState({0_in, 0_in, 0_deg});
+		chassis->driveToPoint({12_in, 0_in});
 		break;
 		// will be testing the rotations and the threshold for this function
 
@@ -417,20 +352,21 @@ void autonomous()
 
 void opcontrol()
 {
-	chassis->stop();
-	flywheel.moveVelocity(0);
-	lift.moveVelocity(0);
-	chassis->setMaxVelocity(200);
+	disabled();
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	flywheel.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	lift.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	intakeExp.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	catapult.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 	masterController.rumble("..");
 
 	bool reversed = false;
 
-	bool flywheelOn = false;
+	bool catapultOn = false;
 
 	bool liftIsToggled = false;
+
+	bool cataHanging = false;
+
+	bool cataDescoring = false;
 
 	while (true)
 	{
@@ -453,52 +389,56 @@ void opcontrol()
 
 		// Pass the manipulated joystick values to tank drive thing
 
-		// flywheel controls and stuff
-		if (flywheelForward.isPressed())
+		// cata controls and stuff
+		if (catapultHold.isPressed())
 		{
-			flywheel.moveVelocity(600);
+			catapult.moveVelocity(200);
 		}
-		else if (flywheelBackward.isPressed())
+		else if (catapultToggle.changedToPressed())
 		{
-			flywheel.moveVelocity(-600);
+			catapultOn = !catapultOn;
 		}
-		else if (flywheelToggle.changedToPressed())
+		else if(cataHang.changedToPressed())
 		{
-			flywheelOn = !flywheelOn;
+			cataHanging = !cataHanging;
 		}
-		else if (flywheelOn)
+		else if (cataDescore.isPressed())
 		{
-			flywheel.moveVelocity(600);
+			cataDescoring = !cataDescoring;
+		}
+		else if (catapultOn)
+		{
+			catapult.moveVelocity(200);
+		}
+		else if (cataHanging)
+		{
+			catapult.moveAbsolute(720, 200);
+		}
+		else if (cataDescoring)
+		{
+			catapult.moveAbsolute(720, 200);
+		}
+		else if (catapultOn)
+		{
+			catapult.moveVelocity(600);
 		}
 		else
 		{
-			flywheel.moveVelocity(0);
+			catapult.moveVelocity(0);
 		}
 
-		// lift controls and stuff
-		if (liftUpManual.isPressed())
+		// intake controls and stuff
+		if (intake.isPressed())
 		{
-			lift.moveVelocity(100);
+			intakeExp.moveVelocity(200);
 		}
-		else if (liftDownManual.isPressed())
+		else if (outtake.isPressed())
 		{
-			lift.moveVelocity(-100);
-		}
-		else if (liftToggle.changedToPressed())
-		{
-			liftIsToggled = !liftIsToggled;
-		}
-		else if (liftIsToggled)
-		{
-			lift.moveAbsolute(500, 100);
-		}
-		else if (!liftIsToggled)
-		{
-			lift.moveAbsolute(0, 100);
+			intakeExp.moveVelocity(-200);
 		}
 		else
 		{
-			lift.moveVelocity(0);
+			intakeExp.moveVelocity(0);
 		}
 
 		pros::delay(20); // delay that is required for pros to work
