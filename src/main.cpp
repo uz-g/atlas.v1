@@ -29,10 +29,10 @@ auto chassis = ChassisControllerBuilder()
 				   .withMotors(
 					   {-LEFT_MTR_B, -LEFT_MTR_M, -LEFT_MTR_F},
 					   {RIGHT_MTR_B, RIGHT_MTR_M, RIGHT_MTRF}) // left motor is reversed
-				   .withGains(
-					   {dkP, dkI, dkD}, // distance controller gains (p, i, d)
-					   {tkP, tkI, tkD}, // turn controller gains (p, i, d)
-					   {akP, akI, akD}	// angle controller gains (helps drive straight) (p, i, d)
+				   .withGains( //the i in pid is usually not needed for vex pids so keep it 0
+					   {0.00000, 0, 0.00000}, // distance controller gains (p, i, d)
+					   {0.00000, 0, 0.00000}, // turn controller gains (p, i, d)
+					   {0.00000, 0, 0.00000}	// angle controller gains (helps drive straight) (p, i, d)
 					   )
 				   // dema filters were here, no longer here because i dont know how to use them
 				   // dual exponential moving average filters - smooths out the controller output and make it less jerky
