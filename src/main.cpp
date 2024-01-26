@@ -11,7 +11,6 @@ okapi::Motor flywheel(FLYWHEEL, false, okapi::AbstractMotor::gearset::blue,
 
 // create the 5.5 watt vex exp motor
 
-
 // create controller
 okapi::Controller masterController;
 okapi::ControllerButton reverseButton(okapi::ControllerDigital::X);
@@ -28,29 +27,30 @@ auto chassis = ChassisControllerBuilder()
 				   .withMotors(
 					   {-LEFT_MTR_B, -LEFT_MTR_M, -LEFT_MTR_F},
 					   {RIGHT_MTR_B, RIGHT_MTR_M, RIGHT_MTRF}) // left motor is reversed
-				   .withGains(
-					   {dkP, dkI, dkD}, // distance controller gains (p, i, d)
-					   {tkP, tkI, tkD}, // turn controller gains (p, i, d)
-					   {akP, akI, akD}	// angle controller gains (helps drive straight) (p, i, d)
-					   )
+				//    .withGains(
+				// 	   {dkP, dkI, dkD}, // distance controller gains (p, i, d)
+				// 	   {tkP, tkI, tkD}, // turn controller gains (p, i, d)
+				// 	   {akP, akI, akD}	// angle controller gains (helps drive straight) (p, i, d)
+				// 	   )
 				   .withDerivativeFilters(						// filters for the controllers makes it smoother and stuff [i actually have no idea]
 					   std::make_unique<DemaFilter>(0.2, 0.15), // Distance controller filter
 					   std::make_unique<DemaFilter>(0.2, 0.15), // Turn controller filter
 					   std::make_unique<DemaFilter>(0.2, 0.15)	// Angle controller filter
 					   )										// dema = dual exponential moving average filters - smooths out the controller output and make it less jerky
-				   .withSensors(
-					   RotationSensor{xRotationSensor},		 // vertical encoder in V5 port 1
-					   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
-					   )
+				//    .withSensors(
+				// 	   RotationSensor{xRotationSensor},		 // vertical encoder in V5 port 1
+				// 	   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
+				// 	   )
 				   .withDimensions(
-					   {AbstractMotor::gearset::green, (60.0 / 36.0)}, // green motor cartridge, 36:60 gear ratio
-					   {{3.25_in, 12_in}, imev5GreenTPR})			   // 3.25 inch wheels, 14.75 inch wheelbase width
+					   {AbstractMotor::gearset::green, (36.0 / 60.0)}, // green motor cartridge, 36:60 gear ratio
+					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
 
 				   .withMaxVelocity(200)
 				   .withOdometry(
-					   {{2.75_in, 7_in},
-						quadEncoderTPR},
-					   StateMode::CARTESIAN)
+					   //    {{2.75_in, 7_in},
+					   // 	quadEncoderTPR},
+					   //    StateMode::CARTESIAN
+					   )
 				   // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
 				   // 1 horizontal tracking wheel and 1 vertical tracking wheel
 
@@ -59,73 +59,74 @@ auto chassis = ChassisControllerBuilder()
 auto profileController = AsyncMotionProfileControllerBuilder()
 							 .withLimits( // base values * modifier values
 								 {
-									 1.439 * .99, // max velocity in m/s calculated using squiggles constraints * a modifier that i want
+									 1.439 * .8, // max velocity in m/s calculated using squiggles constraints * a modifier that i want
 									 // max acceletation
 									 // these motor can go to 1.05 nm of torque, will use .9 nm of torque to be safe
 									 //  estimatd weight of 15 kg
 									 // 8.7219866748 m/s/s max acceleration, ill use 4 [i found this on a forum maybe its a good idea to
 									 //  keep it low] and apply a modifier of .8 - 2 may also be a good default value
-									 4.00 * .8,
+									 3.00 * .8,
 									 8.00 * .8 // max jerk should be around double max acceleration
 								 })			   // double maxVel double maxAccel double maxJerk
 							 .withOutput(chassis)
 							 .buildMotionProfileController();
 
-// pros create motor stuff for lemlib [im only using lemlib for the pure pursuit stuff]
-pros::Motor lfm(LEFT_MTR_B, pros::E_MOTOR_GEARSET_18, true);
-pros::Motor lmm(LEFT_MTR_M, pros::E_MOTOR_GEARSET_18, true);
-pros::Motor lbm(LEFT_MTR_F, pros::E_MOTOR_GEARSET_18, true);
-pros::Motor rfm(RIGHT_MTR_B, pros::E_MOTOR_GEARSET_18, false);
-pros::Motor rmm(RIGHT_MTR_M, pros::E_MOTOR_GEARSET_18, false);
-pros::Motor rbm(RIGHT_MTRF, pros::E_MOTOR_GEARSET_18, false);
+// // pros create motor stuff for lemlib [im only using lemlib for the pure pursuit stuff]
+// // every lemlib thing is commented out because it breaks everything else for some reason
+// pros::Motor lfm(LEFT_MTR_B, pros::E_MOTOR_GEARSET_18, true);
+// pros::Motor lmm(LEFT_MTR_M, pros::E_MOTOR_GEARSET_18, true);
+// pros::Motor lbm(LEFT_MTR_F, pros::E_MOTOR_GEARSET_18, true);
+// pros::Motor rfm(RIGHT_MTR_B, pros::E_MOTOR_GEARSET_18, false);
+// pros::Motor rmm(RIGHT_MTR_M, pros::E_MOTOR_GEARSET_18, false);
+// pros::Motor rbm(RIGHT_MTRF, pros::E_MOTOR_GEARSET_18, false);
 
-pros::MotorGroup leftDrive({lfm, lmm, lbm});
-pros::MotorGroup rightDrive({rfm, rmm, rbm});
+// pros::MotorGroup leftDrive({lfm, lmm, lbm});
+// pros::MotorGroup rightDrive({rfm, rmm, rbm});
 
-lemlib::Drivetrain_t drivetrain{
-	&leftDrive,	 // left drivetrain motors
-	&rightDrive, // right drivetrain motors
-	13,			 // track width
-	3.25,		 // wheel diameter
-	333			 // wheel rpm
-};
-pros::Rotation rotX(xRotationSensor, false); // port 1, not reversed
-pros::Rotation rotY(yRotationSensor, true);	 // port 1, not reversed
-lemlib::TrackingWheel trackWheel1(&rotX, 2.75, 4.3);
-lemlib::TrackingWheel trackWheel2(&rotY, 2.75, 4.3);
+// lemlib::Drivetrain_t drivetrain{
+// 	&leftDrive,	 // left drivetrain motors
+// 	&rightDrive, // right drivetrain motors
+// 	14.75,			 // track width
+// 	3.25,		 // wheel diameter
+// 	333			 // wheel rpm
+// };
+// pros::Rotation rotX(xRotationSensor, false); // port 1, not reversed
+// pros::Rotation rotY(yRotationSensor, true);	 // port 1, not reversed
+// lemlib::TrackingWheel trackWheel1(&rotX, 2.75, 4.3);
+// lemlib::TrackingWheel trackWheel2(&rotY, 2.75, 4.3);
 
-lemlib::OdomSensors_t sensors{
-	&trackWheel1, // vertical tracking wheel
-	nullptr,	  // no 2nd vertical tracking wheel
-	&trackWheel2, // horizontal tracking wheel
-	nullptr		  // no 2nd horizontal tracking wheel
-};
+// lemlib::OdomSensors_t sensors{
+// 	&trackWheel1, // vertical tracking wheel
+// 	nullptr,	  // no 2nd vertical tracking wheel
+// 	&trackWheel2, // horizontal tracking wheel
+// 	nullptr		  // no 2nd horizontal tracking wheel
+// };
 
-// forward/backward PID
-lemlib::ChassisController_t lateralController{
-	// using default values for now
-	8,	 // kP
-	30,	 // kD
-	1,	 // smallErrorRange
-	100, // smallErrorTimeout
-	3,	 // largeErrorRange
-	500, // largeErrorTimeout
-	5	 // slew rate
-};
+// // forward/backward PID
+// lemlib::ChassisController_t lateralController{
+// 	// using default values for now
+// 	8,	 // kP
+// 	30,	 // kD
+// 	1,	 // smallErrorRange
+// 	100, // smallErrorTimeout
+// 	3,	 // largeErrorRange
+// 	500, // largeErrorTimeout
+// 	5	 // slew rate
+// };
 
-// turning PID
-lemlib::ChassisController_t angularController{
-	// using default values for now
-	4,	 // kP
-	40,	 // kD
-	1,	 // smallErrorRange
-	100, // smallErrorTimeout
-	3,	 // largeErrorRange
-	500, // largeErrorTimeout
-	0	 // slew rate
-};
+// // turning PID
+// lemlib::ChassisController_t angularController{
+// 	// using default values for now
+// 	4,	 // kP
+// 	40,	 // kD
+// 	1,	 // smallErrorRange
+// 	100, // smallErrorTimeout
+// 	3,	 // largeErrorRange
+// 	500, // largeErrorTimeout
+// 	0	 // slew rate
+// };
 
-lemlib::Chassis chassisLem(drivetrain, lateralController, angularController, sensors);
+// lemlib::Chassis chassisLem(drivetrain, lateralController, angularController, sensors);
 
 enum class autonState
 {
@@ -164,18 +165,18 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 }
 
 // lemlib screen thing
-void screen()
-{
-	// loop forever
-	while (true)
-	{
-		lemlib::Pose pose = chassisLem.getPose();		// get the current position of the robot
-		pros::lcd::print(0, "x: %f", pose.x);			// print the x position
-		pros::lcd::print(1, "y: %f", pose.y);			// print the y position
-		pros::lcd::print(2, "heading: %f", pose.theta); // print the heading
-		pros::delay(10);
-	}
-}
+// void screen()
+// {
+// 	// loop forever
+// 	while (true)
+// 	{
+// 		lemlib::Pose pose = chassisLem.getPose();		// get the current position of the robot
+// 		pros::lcd::print(0, "x: %f", pose.x);			// print the x position
+// 		pros::lcd::print(1, "y: %f", pose.y);			// print the y position
+// 		pros::lcd::print(2, "heading: %f", pose.theta); // print the heading
+// 		pros::delay(10);
+// 	}
+// }
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -186,11 +187,11 @@ void screen()
 
 void initialize() // initialize the GIU
 {
-	// lemlib stuff
-	pros::lcd::initialize(); // initialize brain screen
-	chassisLem.calibrate();
-	pros::Task screenTask(screen); // create a task to print the position to the screen
-	chassisLem.setPose(0, 0, 0);   // set the starting position of the robot
+	// // lemlib stuff
+	// pros::lcd::initialize(); // initialize brain screen
+	// chassisLem.calibrate();
+	// pros::Task screenTask(screen); // create a task to print the position to the screen
+	// chassisLem.setPose(0, 0, 0);   // set the starting position of the robot
 
 	// gui stuff from djmango
 
@@ -300,8 +301,6 @@ void autonomous()
 		// opponent goalside auton
 		chassis->setState({0_in, 31_in, 0_deg}); // starting pos of middle of robot
 
-		chassis->getModel()->driveVector(10, 25); // drive forward a bit in an arc turning to the right speed, yaw
-
 		// Generate a path that hits a ball into the goal
 		profileController->generatePath(
 			{{0_in, 24_in, 0_deg}, {42_in, 0_in, 0_deg}, {36_in, 0_in, 0_deg}, {42_in, 0_in, 0_deg}}, "A");
@@ -395,10 +394,15 @@ void autonomous()
 		chassis->driveToPoint({12_in, 96_in});
 		chassis->driveToPoint({42_in, 130_in});
 
-		chassisLem.follow("path.txt", 2000, 15); // follow the path that has to be uploaded to the brain via sd card
+		// chassisLem.follow("path.txt", 2000, 15); // follow the path that has to be uploaded to the brain via sd card
 		break;
 
 	case autonState::testing:
+
+		chassis->setState({0_in, 24_in, 0_deg});
+		chassis->driveToPoint({80_in, 24_in});
+		chassis->driveToPoint({0_in, 24_in});
+
 
 		break;
 		// will be testing the rotations and the threshold for this function
@@ -408,10 +412,7 @@ void autonomous()
 	}
 	std::cout << pros::millis() << ": auton took " << timer->getDtFromMark().convert(second) << " seconds" << std::endl;
 
-	// Stop all motors
-	chassis->stop();
-	flywheel.moveVelocity(0);
-	lift.moveVelocity(0);
+	disabled(); // stop all motors
 }
 
 void opcontrol()
@@ -431,7 +432,6 @@ void opcontrol()
 
 	bool liftIsToggled = false;
 
-
 	while (true)
 	{
 
@@ -446,17 +446,10 @@ void opcontrol()
 		double leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
 		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
 
-		// Reverse controls if needed
-		if (reversed)
-		{
-			leftJoystick = -leftJoystick;
-			rightJoystick = -rightJoystick;
-			chassis->getModel()->tank(rightJoystick, leftJoystick);
-		}
-		else
-		{
-			chassis->getModel()->tank(leftJoystick, rightJoystick);
-		}
+		// Manually handle joystick controls and reverse if necessary
+		leftJoystick = reversed ? -leftJoystick : leftJoystick;
+		rightJoystick = reversed ? -rightJoystick : rightJoystick;
+		chassis->getModel()->tank(leftJoystick, rightJoystick);
 
 		// Pass the manipulated joystick values to tank drive thing
 
