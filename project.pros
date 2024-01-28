@@ -28,7 +28,7 @@
                 "version": "0.4.7"
             },
             "kernel": {
-                "location": "/home/uz/.config/pros/templates/kernel@3.8.0",
+                "location": "/Users/uz./Library/Application Support/PROS/templates/kernel@3.8.0",
                 "metadata": {
                     "cold_addr": "58720256",
                     "cold_output": "bin/cold.package.bin",
@@ -189,7 +189,7 @@
                 "version": "3.8.0"
             },
             "okapilib": {
-                "location": "/home/uz/.config/pros/templates/okapilib@4.8.0",
+                "location": "/Users/uz./Library/Application Support/PROS/templates/okapilib@4.8.0",
                 "metadata": {
                     "origin": "pros-mainline"
                 },

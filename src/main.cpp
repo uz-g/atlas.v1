@@ -24,33 +24,46 @@ ControllerButton cataHang(okapi::ControllerDigital::L2);
 ControllerButton cataDescore(okapi::ControllerDigital::A);
 
 // chassis
+Motor clbm(LEFT_MTR_B, true, okapi::AbstractMotor::gearset::green,
+		   okapi::AbstractMotor::encoderUnits::degrees);
+Motor clmm(LEFT_MTR_M, true, okapi::AbstractMotor::gearset::green,
+		   okapi::AbstractMotor::encoderUnits::degrees);
+Motor clfm(LEFT_MTR_F, true, okapi::AbstractMotor::gearset::green,
+		   okapi::AbstractMotor::encoderUnits::degrees);
+Motor crbm(RIGHT_MTR_B, false, okapi::AbstractMotor::gearset::green,
+		   okapi::AbstractMotor::encoderUnits::degrees);
+Motor crmm(RIGHT_MTR_M, false, okapi::AbstractMotor::gearset::green,
+		   okapi::AbstractMotor::encoderUnits::degrees);
+Motor crfm(RIGHT_MTR_F, false, okapi::AbstractMotor::gearset::green,
+		   okapi::AbstractMotor::encoderUnits::degrees);
+
 // create the chassis object/motors with the correct wheels and gearset
 auto chassis = ChassisControllerBuilder()
 				   .withMotors(
 					   {-LEFT_MTR_B, -LEFT_MTR_M, -LEFT_MTR_F},
-					   {RIGHT_MTR_B, RIGHT_MTR_M, RIGHT_MTRF}) // left motor is reversed
-				   .withGains( //the i in pid is usually not needed for vex pids so keep it 0
-					   {0.00000, 0, 0.00000}, // distance controller gains (p, i, d)
-					   {0.00000, 0, 0.00000}, // turn controller gains (p, i, d)
-					   {0.00000, 0, 0.00000}	// angle controller gains (helps drive straight) (p, i, d)
+					   {RIGHT_MTR_B, RIGHT_MTR_M, RIGHT_MTR_F}) // left motor is reversed
+				   .withGains(									// the i in pid is usually not needed for vex pids so keep it 0
+					   {0.00000, 0, 0.00000},					// distance controller gains (p, i, d)
+					   {0.00000, 0, 0.00000},					// turn controller gains (p, i, d)
+					   {0.00000, 0, 0.00000}					// angle controller gains (helps drive straight) (p, i, d)
 					   )
 				   // dema filters were here, no longer here because i dont know how to use them
 				   // dual exponential moving average filters - smooths out the controller output and make it less jerky
-				   .withSensors(
-					   RotationSensor{xRotationSensor},		 // vertical encoder in V5 port 1
-					   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
-					   )
 				   .withDimensions(
 					   {AbstractMotor::gearset::green, (36.0 / 60.0)}, // green motor cartridge, 36:60 gear ratio
 					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
 
 				   .withMaxVelocity(200)
+				   .withSensors(
+					   RotationSensor{xRotationSensor},		 // vertical encoder in V5 port 1
+					   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
+					   )
 				   .withOdometry(
-					   {{2.75_in, 7_in},
+					   {{2.75_in},
 						quadEncoderTPR},
 					   StateMode::CARTESIAN)
 				   // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
-				   // 1 horizontal tracking wheel and 1 vertical tracking wheel
+				   // 1 horizontal tracking wheel and 1 vertical tracking wheel not sure how to do that
 
 				   .buildOdometry();
 
@@ -84,17 +97,28 @@ static const char *btnmMap[] = {"opSide", "allySide", "testing", ""}; // button 
 
 static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) // button matrix action for auton selection
 {
-	if (lv_obj_get_free_num(btnm) == 100)
+	if (lv_obj_get_free_num(btnm) == 100) 
 	{ // reds
 		if (txt == "opSide")
+		{
+			masterController.rumble(". _");
+
 			autonSelection = autonState::opSide;
+		}
 		else if (txt == "allySide")
+		{
+			masterController.rumble(".. _");
+
 			autonSelection = autonState::allySide;
+		}
 		else if (txt == "testing")
+		{
+			masterController.rumble("__");
+
 			autonSelection = autonState::testing;
+		}
 	}
 
-	masterController.rumble("..");
 	return LV_RES_OK; // return OK because the button matrix is not deleted
 }
 
@@ -105,20 +129,6 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 	return LV_RES_OK;
 }
 
-// lemlib screen thing
-// void screen()
-// {
-// 	// loop forever
-// 	while (true)
-// 	{
-// 		lemlib::Pose pose = chassisLem.getPose();		// get the current position of the robot
-// 		pros::lcd::print(0, "x: %f", pose.x);			// print the x position
-// 		pros::lcd::print(1, "y: %f", pose.y);			// print the y position
-// 		pros::lcd::print(2, "heading: %f", pose.theta); // print the heading
-// 		pros::delay(10);
-// 	}
-// }
-
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -128,13 +138,8 @@ static lv_res_t skillsBtnAction(lv_obj_t *btn) // button action for skills auton
 
 void initialize() // initialize the GIU
 {
-	// // lemlib stuff
-	// pros::lcd::initialize(); // initialize brain screen
-	// chassisLem.calibrate();
-	// pros::Task screenTask(screen); // create a task to print the position to the screen
-	// chassisLem.setPose(0, 0, 0);   // set the starting position of the robot
 
-	// gui stuff from djmango
+	// gui stuff from djmango korvex
 
 	// lvgl theme
 	lv_theme_t *th = lv_theme_alien_init(300, NULL); // Set a HUE value and keep font default MAGENTA
@@ -170,12 +175,27 @@ void initialize() // initialize the GIU
 	lv_obj_align(skillsBtn, NULL, LV_ALIGN_CENTER, 0, 0);
 	lv_obj_set_free_num(skillsBtn, 102);
 
-	// debug
-	lv_obj_t *msgBox = lv_mbox_create(telemetryTab, NULL);
-	lv_mbox_set_text(msgBox, "debug");
-	lv_obj_align(msgBox, NULL, LV_ALIGN_CENTER, 0, 20);
-	lv_mbox_set_anim_time(msgBox, 300);
-	lv_mbox_start_auto_close(msgBox, 2000);
+	// motor temps telemetry tab
+	lv_obj_t *motorTemps = lv_label_create(telemetryTab, NULL);
+	char tempsText[256]; // Adjust the size based on your needs
+
+	snprintf(tempsText, sizeof(tempsText), "Motor Temps:"
+										   "	Cata: %d\n"
+										   "IntakeExp: %d"
+										   "	CataExp: %d\n"
+										   "left back: %d"
+										   "	left middle: %d\n"
+										   "left front: %d"
+										   "	right back: %d\n"
+										   "right middle: %d"
+										   "	right front: %d\n",
+			 cata.getTemperature(), intakeExp.getTemperature(), cataExp.getTemperature(),
+			 clbm.getTemperature(), clmm.getTemperature(), clfm.getTemperature(),
+			 crbm.getTemperature(), crmm.getTemperature(), crfm.getTemperature());
+
+	lv_label_set_text(motorTemps, tempsText);
+	lv_obj_set_pos(motorTemps, 0, 0);
+	lv_obj_align(motorTemps, NULL, LV_ALIGN_CENTER, 0, 0);
 
 	std::cout << pros::millis() << ": finished creating gui!" << std::endl;
 
@@ -185,6 +205,12 @@ void initialize() // initialize the GIU
 	std::cout << pros::millis() << ": cata: " << cata.getTemperature() << std::endl;
 	std::cout << pros::millis() << ": intakeExp: " << intakeExp.getTemperature() << std::endl;
 	std::cout << pros::millis() << ": cataExp: " << cataExp.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": left back: " << clbm.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": left middle: " << clmm.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": left front: " << clfm.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": right back: " << crbm.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": right middle: " << crmm.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": right front: " << crfm.getTemperature() << std::endl;
 }
 
 /**
@@ -242,14 +268,17 @@ void autonomous()
 
 		// Generate a path that hits a ball into the goal
 		profileController->generatePath(
-			{{0_in, 24_in, 0_deg}, {42_in, 0_in, 0_deg}, {36_in, 0_in, 0_deg}, {42_in, 0_in, 0_deg}}, "A");
+			{{0_in, 31_in, 0_deg}, {30_in, 0_in, 0_deg}, {26_in, 0_in, 0_deg}, {30_in, 0_in, 0_deg}}, "A");
 		// Make the chassis follow the path
 		profileController->setTarget("A");
 		profileController->waitUntilSettled();
 
 		// Generate a path that descores the matchload ball
 		profileController->generatePath(
-			{{42_in, 0_in, 0_deg}, {10_in, 14_in, 90_deg}, {20_in, 71_in, 90_deg}}, "B");
+			{{30_in, 0_in, 0_deg}, {20_in, 4_in, 90_deg}, {10_in, 14_in, 90_deg}, {20_in, 71_in, 90_deg}}, "B");
+
+		catapult.moveRelative(720, 200);
+
 		profileController->setTarget("B");
 		profileController->waitUntilSettled();
 
@@ -348,6 +377,7 @@ void autonomous()
 	std::cout << pros::millis() << ": auton took " << timer->getDtFromMark().convert(second) << " seconds" << std::endl;
 
 	disabled(); // stop all motors
+	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 }
 
 void opcontrol()
@@ -356,7 +386,7 @@ void opcontrol()
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	intakeExp.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	catapult.setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
-	masterController.rumble("..");
+	masterController.rumble("..-..-..");
 
 	bool reversed = false;
 
@@ -383,8 +413,8 @@ void opcontrol()
 		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
 
 		// Manually handle joystick controls and reverse if necessary
-		leftJoystick = reversed ? -leftJoystick : leftJoystick;
-		rightJoystick = reversed ? -rightJoystick : rightJoystick;
+		double leftJoystick = reversed ? -leftJoystick : leftJoystick;
+		double rightJoystick = reversed ? -rightJoystick : rightJoystick;
 		chassis->getModel()->tank(leftJoystick, rightJoystick);
 
 		// Pass the manipulated joystick values to tank drive thing
@@ -398,7 +428,7 @@ void opcontrol()
 		{
 			catapultOn = !catapultOn;
 		}
-		else if(cataHang.changedToPressed())
+		else if (cataHang.changedToPressed())
 		{
 			cataHanging = !cataHanging;
 		}
@@ -412,11 +442,11 @@ void opcontrol()
 		}
 		else if (cataHanging)
 		{
-			catapult.moveAbsolute(720, 200);
+			catapult.moveRelative(720, 200);
 		}
 		else if (cataDescoring)
 		{
-			catapult.moveAbsolute(720, 200);
+			catapult.moveRelative(720, 200);
 		}
 		else if (catapultOn)
 		{
