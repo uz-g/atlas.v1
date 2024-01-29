@@ -59,11 +59,12 @@ auto chassis = ChassisControllerBuilder()
 					   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
 					   )
 				   .withOdometry(
-					   {{2.75_in},
-						quadEncoderTPR},
-					   StateMode::CARTESIAN)
-				   // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
-				   // 1 horizontal tracking wheel and 1 vertical tracking wheel not sure how to do that
+					   {{2.75_in, 0_in},			 // Wheel diameters for X and Y sensors
+					   quadEncoderTPR}, // TPR values for X and Y sensors
+					   StateMode::CARTESIAN
+					   )			 // State mode
+											 // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
+											 // 1 horizontal tracking wheel and 1 vertical tracking wheel not sure how to do that
 
 				   .buildOdometry();
 
@@ -97,7 +98,7 @@ static const char *btnmMap[] = {"opSide", "allySide", "testing", ""}; // button 
 
 static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) // button matrix action for auton selection
 {
-	if (lv_obj_get_free_num(btnm) == 100) 
+	if (lv_obj_get_free_num(btnm) == 100)
 	{ // reds
 		if (txt == "opSide")
 		{
@@ -310,6 +311,8 @@ void autonomous()
 			{{76_in, 115_in, 90_deg}, {50_in, 98_in, 180_deg}, {6_in, 96_in, 270_deg}, {4_in, 74_in, 270_deg}}, "E");
 		profileController->setTarget("E");
 		profileController->waitUntilSettled();
+
+
 
 		disabled(); // stop all motors
 
