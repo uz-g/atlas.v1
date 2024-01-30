@@ -8,12 +8,12 @@
 const int LEFT_MTR_B = 1;
 const int LEFT_MTR_M = 2;
 const int LEFT_MTR_F = 3;
+const int LEFT_EXP = 11;
 const int RIGHT_MTR_B = 10;
 const int RIGHT_MTR_M = 9;
 const int RIGHT_MTR_F = 8;
-const int INTAKE_EXP = 6;
-const int CATAPULT = 5;
-const int CATAPULT_EXP = 11;
+const int RIGHT_EXP = 6;
+const int INTAKE = 5;
 const int yRotationSensor = 4;
 const int xRotationSensor = 7;
 
