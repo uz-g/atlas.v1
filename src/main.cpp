@@ -59,10 +59,9 @@ auto chassis = ChassisControllerBuilder()
 					   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
 					   )
 				   .withOdometry(
-					   {{2.75_in, 0_in},			 // Wheel diameters for X and Y sensors
-					   quadEncoderTPR}, // TPR values for X and Y sensors
-					   StateMode::CARTESIAN
-					   )			 // State mode
+					   {{2.75_in, 0_in},	 // Wheel diameters for X and Y sensors
+						quadEncoderTPR},	 // TPR values for X and Y sensors
+					   StateMode::CARTESIAN) // State mode
 											 // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
 											 // 1 horizontal tracking wheel and 1 vertical tracking wheel not sure how to do that
 
@@ -311,8 +310,6 @@ void autonomous()
 			{{76_in, 115_in, 90_deg}, {50_in, 98_in, 180_deg}, {6_in, 96_in, 270_deg}, {4_in, 74_in, 270_deg}}, "E");
 		profileController->setTarget("E");
 		profileController->waitUntilSettled();
-
-
 
 		disabled(); // stop all motors
 
