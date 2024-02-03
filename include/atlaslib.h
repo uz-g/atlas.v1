@@ -5,17 +5,16 @@
 #include "lemlib/api.hpp"
 #pragma
 
-const int LEFT_MTR_B = 1;
-const int LEFT_MTR_M = 2;
-const int LEFT_MTR_F = 3;
-const int LEFT_EXP = 11;
-const int RIGHT_MTR_B = 10;
-const int RIGHT_MTR_M = 9;
-const int RIGHT_MTR_F = 8;
-const int RIGHT_EXP = 6;
+const int LEFT_MTR_B = 18;
+const int LEFT_MTR_M = 10;
+const int LEFT_MTR_F = 19;
+const int RIGHT_MTR_B = 9;
+const int RIGHT_MTR_M = 1;
+const int RIGHT_MTR_F = 3;
+const int FLYWHEEL = 6;
 const int INTAKE = 5;
-const int yRotationSensor = 4;
-const int xRotationSensor = 7;
+const int rightRotationSensor = 4;
+const int leftRotationSensor = 7;
 
 // distance controller gains
 const float dkP = 0.0001;

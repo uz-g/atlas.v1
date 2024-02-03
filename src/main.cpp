@@ -7,13 +7,16 @@ using namespace std;
 Motor intake(INTAKE, false, okapi::AbstractMotor::gearset::green,
 			 okapi::AbstractMotor::encoderUnits::degrees);
 
+Motor flywheel(FLYWHEEL, false, okapi::AbstractMotor::gearset::green,
+			   okapi::AbstractMotor::encoderUnits::degrees);
+
 // create controller + buttons
 Controller masterController;
 ControllerButton reverseButton(okapi::ControllerDigital::X);
 ControllerButton takeIn(okapi::ControllerDigital::R1);
 ControllerButton takeOut(okapi::ControllerDigital::R2);
-ControllerButton flatten(okapi::ControllerDigital::A);
-ControllerButton toggleIntake(okapi::ControllerDigital::Y);
+ControllerButton wheelFly(okapi::ControllerDigital::A);
+ControllerButton toggleFlywheel(okapi::ControllerDigital::Y);
 ControllerButton chassisHold(okapi::ControllerDigital::down);
 ControllerButton chassisCoast(okapi::ControllerDigital::right);
 
@@ -24,22 +27,18 @@ Motor clmm(LEFT_MTR_M, true, okapi::AbstractMotor::gearset::green,
 		   okapi::AbstractMotor::encoderUnits::degrees);
 Motor clfm(LEFT_MTR_F, true, okapi::AbstractMotor::gearset::green,
 		   okapi::AbstractMotor::encoderUnits::degrees);
-Motor clExp(LEFT_EXP, true, okapi::AbstractMotor::gearset::green,
-			okapi::AbstractMotor::encoderUnits::degrees);
 Motor crbm(RIGHT_MTR_B, false, okapi::AbstractMotor::gearset::green,
 		   okapi::AbstractMotor::encoderUnits::degrees);
 Motor crmm(RIGHT_MTR_M, false, okapi::AbstractMotor::gearset::green,
 		   okapi::AbstractMotor::encoderUnits::degrees);
 Motor crfm(RIGHT_MTR_F, false, okapi::AbstractMotor::gearset::green,
 		   okapi::AbstractMotor::encoderUnits::degrees);
-Motor crExp(RIGHT_EXP, false, okapi::AbstractMotor::gearset::green,
-			okapi::AbstractMotor::encoderUnits::degrees);
 
 // create the chassis object/motors with the correct wheels and gearset
 auto chassis = ChassisControllerBuilder()
 				   .withMotors(
-					   {-LEFT_MTR_B, -LEFT_MTR_M, -LEFT_MTR_F},
-					   {RIGHT_MTR_B, RIGHT_MTR_M, RIGHT_MTR_F}) // left motor is reversed
+					   {LEFT_MTR_B, LEFT_MTR_M, LEFT_MTR_F},
+					   {-RIGHT_MTR_B, -RIGHT_MTR_M, -RIGHT_MTR_F}) // left motor is reversed
 				   .withGains(									// the i in pid is usually not needed for vex pids so keep it 0
 					   {0.00000, 0.0, 0.00000},					// distance controller gains (p, i, d)
 					   {0.00000, 0.0, 0.00000},					// turn controller gains (p, i, d)
@@ -53,8 +52,8 @@ auto chassis = ChassisControllerBuilder()
 
 				   .withMaxVelocity(200)
 				   .withSensors(
-					   RotationSensor{xRotationSensor},		 // vertical encoder in V5 port 1
-					   RotationSensor{yRotationSensor, true} // horizontal encoder in V5 port 2 (reversed)
+					   RotationSensor{leftRotationSensor},		 // left rotation sensor in V5 port 1
+					   RotationSensor{rightRotationSensor, true} // right rotation sensor in V5 port 2 (reversed)
 					   )
 				   .withOdometry(
 					   {{2.75_in, 0_in},	 // Wheel diameters for X and Y sensors
@@ -62,7 +61,6 @@ auto chassis = ChassisControllerBuilder()
 					   StateMode::CARTESIAN) // State mode
 											 // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
 											 // 1 horizontal tracking wheel and 1 vertical tracking wheel not sure how to do that
-
 				   .buildOdometry();
 
 auto profileController = AsyncMotionProfileControllerBuilder()
@@ -111,7 +109,7 @@ static lv_res_t autonBtnmAction(lv_obj_t *btnm, const char *txt) // button matri
 		}
 		else if (txt == "testing")
 		{
-			masterController.rumble("__");
+			masterController.rumble("_._");
 
 			autonSelection = autonState::testing;
 		}
@@ -179,15 +177,15 @@ void initialize() // initialize the GIU
 
 	snprintf(tempsText, sizeof(tempsText), "Motor Temps:"
 										   "	intake: %d\n"
-										   "left Exp: %d"
-										   "	right Exp: %d\n"
+										   "flywheel: %d"
+										   "	intake: %d\n"
 										   "left back: %d"
 										   "	left middle: %d\n"
 										   "left front: %d"
 										   "	right back: %d\n"
 										   "right middle: %d"
 										   "	right front: %d\n",
-			 intake.getTemperature(), clExp.getTemperature(), crExp.getTemperature(),
+			 intake.getTemperature(), flywheel.getTemperature(), intake.getTemperature(),
 			 clbm.getTemperature(), clmm.getTemperature(), clfm.getTemperature(),
 			 crbm.getTemperature(), crmm.getTemperature(), crfm.getTemperature());
 
@@ -201,8 +199,8 @@ void initialize() // initialize the GIU
 	std::cout << pros::millis() << "\n"
 			  << pros::millis() << ": motor temps:" << std::endl;
 	std::cout << pros::millis() << ": intake: " << intake.getTemperature() << std::endl;
-	std::cout << pros::millis() << ": left Exp: " << clExp.getTemperature() << std::endl;
-	std::cout << pros::millis() << ": right exp: " << crExp.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": left Exp: " << flywheel.getTemperature() << std::endl;
+	std::cout << pros::millis() << ": right exp: " << intake.getTemperature() << std::endl;
 	std::cout << pros::millis() << ": left back: " << clbm.getTemperature() << std::endl;
 	std::cout << pros::millis() << ": left middle: " << clmm.getTemperature() << std::endl;
 	std::cout << pros::millis() << ": left front: " << clfm.getTemperature() << std::endl;
@@ -247,7 +245,6 @@ void competition_initialize() {}
  */
 void autonomous()
 {
-	disabled(); // stop all motors
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
 	intake.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	std::unique_ptr<okapi::AbstractTimer> timer = TimeUtilFactory().create().getTimer();
@@ -262,29 +259,13 @@ void autonomous()
 		// opponent goalside auton
 		chassis->setState({0_in, 31_in, 0_deg}); // starting pos of middle of robot
 
-		intake.moveRelative(720, 200); // move the intake to hold the ball
-
 		// Generate a path that hits a ball into the goal
 		profileController->generatePath(
-			{{0_in, 31_in, 0_deg}, {30_in, 0_in, 0_deg}, {26_in, 0_in, 0_deg}, {30_in, 0_in, 0_deg}}, "A");
+			{{0_in, 31_in, 0_deg}, {34_in, 0_in, 0_deg}, {26_in, 0_in, 0_deg}, {34_in, 0_in, 0_deg}}, "A");
 		// Make the chassis follow the path
 		profileController->setTarget("A");
 		profileController->waitUntilSettled();
 
-		// Generate a path that descores the matchload ball
-		profileController->generatePath(
-			{{30_in, 0_in, 0_deg}, {20_in, 4_in, 90_deg}, {10_in, 14_in, 90_deg}, {20_in, 71_in, 90_deg}}, "B");
-
-		intake.moveRelative(-120, 200); // activate the descore arm
-
-		profileController->setTarget("B");
-		profileController->waitUntilSettled();
-		intake.moveRelative(-240, 200); // deactivate the descore arm
-
-		disabled(); // stop all motors
-
-		// this auton scores a ball into the goal, descores the
-		// matchload ball, and moves the the lift bar and touches it
 
 		break;
 
@@ -300,15 +281,7 @@ void autonomous()
 		profileController->setTarget("C");
 		profileController->waitUntilSettled();
 
-		// Generate a path that scroes the middle and close ball in
-		profileController->generatePath(
-			{{42_in, 118_in, -90_deg}, {40_in, 76_in, -90_deg}, {50_in, 115_in, 90_deg}, {64_in, 98_in, -90_deg}, {64_in, 115_in, 90_deg}}, "D");
-		intake.moveVelocity(200);
-		profileController->setTarget("D");
-		profileController->waitUntilSettled();
-		intake.moveVelocity(0);
-
-		disabled(); // stop all motors
+		
 
 		// this auton scores a ball into the goal, scores the middle
 		// ball, and moves the the lift bar and touches it
@@ -381,10 +354,7 @@ void autonomous()
 
 		chassis->setState({0_in, 0_in, 0_deg});
 		chassis->driveToPoint({12_in, 0_in});
-		chassis->driveToPoint({12_in, 12_in});
-		chassis->driveToPoint({0_in, 12_in});
-		chassis->driveToPoint({0_in, 0_in});
-		chassis->turnToAngle(0_deg);
+		
 		break;
 		// will be testing the rotations and the threshold for this function
 
@@ -393,16 +363,15 @@ void autonomous()
 	}
 	std::cout << pros::millis() << ": auton took " << timer->getDtFromMark().convert(second) << " seconds" << std::endl;
 
-	disabled(); // stop all motors
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+	chassis->stop();
 }
 
 void opcontrol()
 {
-	disabled();
 	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	intake.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
-	masterController.rumble("..-..-..");
+	masterController.rumble("..-.");
 
 	bool reversed = false;
 
@@ -424,11 +393,18 @@ void opcontrol()
 		double leftJoystick = masterController.getAnalog(okapi::ControllerAnalog::leftY);
 		double rightJoystick = masterController.getAnalog(okapi::ControllerAnalog::rightY);
 
-		// Manually handle joystick controls and reverse if necessary
-		double leftJoystick = reversed ? -leftJoystick : leftJoystick;
-		double rightJoystick = reversed ? -rightJoystick : rightJoystick;
-		chassis->getModel()->tank(leftJoystick, rightJoystick);
-
+		// Reverse controls if needed
+		if (reversed)
+		{
+			leftJoystick = -leftJoystick;
+			rightJoystick = -rightJoystick;
+			chassis->getModel()->tank(leftJoystick, rightJoystick);
+		}
+		else
+		{
+			chassis->getModel()->tank(rightJoystick, leftJoystick);
+		}
+    
 		// Pass the manipulated joystick values to tank drive thing
 
 		// intake controls and stuff
@@ -442,7 +418,7 @@ void opcontrol()
 			intake.moveVelocity(-50);
 			intakeIsToggled = false;
 		}
-		else if (flatten.changedToPressed())
+		else if (wheelFly.changedToPressed())
 		{
 			intakeIsToggled = false;
 
@@ -456,7 +432,7 @@ void opcontrol()
 			}
 			flat = !flat;
 		}
-		else if (toggleIntake.changedToPressed())
+		else if (toggleFlywheel.changedToPressed())
 		{
 			intakeIsToggled = !intakeIsToggled;
 		}
