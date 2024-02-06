@@ -39,11 +39,11 @@ auto chassis = ChassisControllerBuilder()
 				   .withMotors(
 					   {LEFT_MTR_B, LEFT_MTR_M, LEFT_MTR_F},
 					   {-RIGHT_MTR_B, -RIGHT_MTR_M, -RIGHT_MTR_F}) // left motor is reversed
-				   .withGains(									// the i in pid is usually not needed for vex pids so keep it 0
-					   {0.00000, 0.0, 0.00000},					// distance controller gains (p, i, d)
-					   {0.00000, 0.0, 0.00000},					// turn controller gains (p, i, d)
-					   {0.00000, 0.0, 0.00000}					// angle controller gains (helps drive straight) (p, i, d)
-					   )
+				//    .withGains(									   // the i in pid is usually not needed for vex pids so keep it 0
+				// 	   {0.00000, 0.0, 0.00000},					   // distance controller gains (p, i, d)
+				// 	   {0.00000, 0.0, 0.00000},					   // turn controller gains (p, i, d)
+				// 	   {0.00000, 0.0, 0.00000}					   // angle controller gains (helps drive straight) (p, i, d)
+				// 	   )
 				   // dema filters were here, no longer here because i dont know how to use them
 				   // dual exponential moving average filters - smooths out the controller output and make it less jerky
 				   .withDimensions(
@@ -51,14 +51,15 @@ auto chassis = ChassisControllerBuilder()
 					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
 
 				   .withMaxVelocity(200)
-				   .withSensors(
-					   RotationSensor{leftRotationSensor},		 // left rotation sensor in V5 port 1
-					   RotationSensor{rightRotationSensor, true} // right rotation sensor in V5 port 2 (reversed)
-					   )
+				//    .withSensors(
+				// 	   RotationSensor{leftRotationSensor},		 // left rotation sensor in V5 port 1
+				// 	   RotationSensor{rightRotationSensor, true} // right rotation sensor in V5 port 2 (reversed)
+				// 	   )
 				   .withOdometry(
-					   {{2.75_in, 0_in},	 // Wheel diameters for X and Y sensors
-						quadEncoderTPR},	 // TPR values for X and Y sensors
-					   StateMode::CARTESIAN) // State mode
+					//    {{2.75_in, 0_in},	 // Wheel diameters for X and Y sensors
+					// 	quadEncoderTPR},	 // TPR values for X and Y sensors
+					//    StateMode::CARTESIAN
+					) // State mode
 											 // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
 											 // 1 horizontal tracking wheel and 1 vertical tracking wheel not sure how to do that
 				   .buildOdometry();
@@ -251,7 +252,7 @@ void autonomous()
 	timer->placeMark();
 	std::unique_ptr<okapi::AbstractTimer> intakeTimer = TimeUtilFactory().create().getTimer();
 	if (autonSelection == autonState::off)
-		autonSelection = autonState::opSide; // use opside [the better side for us] if we havent selected an auton
+		autonSelection = autonState::off; // use testing if we havent selected an auton
 
 	switch (autonSelection)
 	{
@@ -260,11 +261,7 @@ void autonomous()
 		chassis->setState({0_in, 31_in, 0_deg}); // starting pos of middle of robot
 
 		// Generate a path that hits a ball into the goal
-		profileController->generatePath(
-			{{0_in, 31_in, 0_deg}, {34_in, 0_in, 0_deg}, {26_in, 0_in, 0_deg}, {34_in, 0_in, 0_deg}}, "A");
-		// Make the chassis follow the path
-		profileController->setTarget("A");
-		profileController->waitUntilSettled();
+		chassis->driveToPoint({32_in, 12_in});
 
 
 		break;
@@ -280,8 +277,6 @@ void autonomous()
 			{{0_in, 96_in, 0_deg}, {42_in, 118_in, 0_deg}, {36_in, 118_in, 0_deg}, {42_in, 118_in, 0_deg}}, "C");
 		profileController->setTarget("C");
 		profileController->waitUntilSettled();
-
-		
 
 		// this auton scores a ball into the goal, scores the middle
 		// ball, and moves the the lift bar and touches it
@@ -354,16 +349,20 @@ void autonomous()
 
 		chassis->setState({0_in, 0_in, 0_deg});
 		chassis->driveToPoint({12_in, 0_in});
-		
+
 		break;
 		// will be testing the rotations and the threshold for this function
 
 	default:
 		break;
 	}
+	chassis->setState({0_in, 0_in, 0_deg});
+	chassis->driveToPoint({30_in, 16_in});
+	chassis->driveToPoint({30_in, 16_in});
+	chassis->driveToPoint({32_in, 16_in});
+	chassis->driveToPoint({24_in, 12_in});
 	std::cout << pros::millis() << ": auton took " << timer->getDtFromMark().convert(second) << " seconds" << std::endl;
 
-	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	chassis->stop();
 }
 
@@ -404,7 +403,7 @@ void opcontrol()
 		{
 			chassis->getModel()->tank(rightJoystick, leftJoystick);
 		}
-    
+
 		// Pass the manipulated joystick values to tank drive thing
 
 		// intake controls and stuff
