@@ -3,6 +3,7 @@
 #include "okapi/api.hpp"
 #include <iostream>
 #include "lemlib/api.hpp"
+#include <vector> 
 #pragma
 
 const int LEFT_MTR_B = 1;
@@ -12,12 +13,13 @@ const int RIGHT_MTR_B = 11;
 const int RIGHT_MTR_M = 19;
 const int RIGHT_MTR_F = 4;
 const int INTAKE = 20;
+const int FLYWHEEL = 10;
 const int rightRotationSensor = 4;
 const int leftRotationSensor = 7;
 
 // distance controller gains
 const float dkP = 0.0001;
-const float dkI = 0.0000; //i is usually not needed for vex pids
+const float dkI = 0.0000; // i is usually not needed for vex pids
 const float dkD = 0.0001;
 
 // turn controller gains

@@ -7,6 +7,8 @@ using namespace std;
 Motor intake(INTAKE, false, okapi::AbstractMotor::gearset::green,
 			 okapi::AbstractMotor::encoderUnits::degrees);
 
+Motor flywheel(FLYWHEEL, false, okapi::AbstractMotor::gearset::blue,
+			   okapi::AbstractMotor::encoderUnits::degrees);
 
 // create controller + buttons
 Controller masterController;
@@ -16,6 +18,8 @@ ControllerButton takeOut(okapi::ControllerDigital::R2);
 ControllerButton toggleIntake(okapi::ControllerDigital::Y);
 ControllerButton chassisHold(okapi::ControllerDigital::down);
 ControllerButton chassisCoast(okapi::ControllerDigital::right);
+ControllerButton flywheelButton(okapi::ControllerDigital::L1);
+ControllerButton flywheelToggle(okapi::ControllerDigital::L2);
 
 // chassis
 Motor clbm(LEFT_MTR_B, true, okapi::AbstractMotor::gearset::green,
@@ -36,11 +40,11 @@ auto chassis = ChassisControllerBuilder()
 				   .withMotors(
 					   {-LEFT_MTR_B, -LEFT_MTR_M, -LEFT_MTR_F},
 					   {RIGHT_MTR_B, RIGHT_MTR_M, RIGHT_MTR_F}) // left motor is reversed
-				//    .withGains(									   // the i in pid is usually not needed for vex pids so keep it 0
-				// 	   {0.00000, 0.0, 0.00000},					   // distance controller gains (p, i, d)
-				// 	   {0.00000, 0.0, 0.00000},					   // turn controller gains (p, i, d)
-				// 	   {0.00000, 0.0, 0.00000}					   // angle controller gains (helps drive straight) (p, i, d)
-				// 	   )
+																//    .withGains(									   // the i in pid is usually not needed for vex pids so keep it 0
+																// 	   {0.00000, 0.0, 0.00000},					   // distance controller gains (p, i, d)
+																// 	   {0.00000, 0.0, 0.00000},					   // turn controller gains (p, i, d)
+																// 	   {0.00000, 0.0, 0.00000}					   // angle controller gains (helps drive straight) (p, i, d)
+																// 	   )
 				   // dema filters were here, no longer here because i dont know how to use them
 				   // dual exponential moving average filters - smooths out the controller output and make it less jerky
 				   .withDimensions(
@@ -48,17 +52,17 @@ auto chassis = ChassisControllerBuilder()
 					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
 
 				   .withMaxVelocity(200)
-				//    .withSensors(
-				// 	   RotationSensor{leftRotationSensor},		 // left rotation sensor in V5 port 1
-				// 	   RotationSensor{rightRotationSensor, true} // right rotation sensor in V5 port 2 (reversed)
-				// 	   )
+				   //    .withSensors(
+				   // 	   RotationSensor{leftRotationSensor},		 // left rotation sensor in V5 port 1
+				   // 	   RotationSensor{rightRotationSensor, true} // right rotation sensor in V5 port 2 (reversed)
+				   // 	   )
 				   .withOdometry(
-					//    {{2.75_in, 0_in},	 // Wheel diameters for X and Y sensors
-					// 	quadEncoderTPR},	 // TPR values for X and Y sensors
-					//    StateMode::CARTESIAN
-					) // State mode
-											 // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
-											 // 1 horizontal tracking wheel and 1 vertical tracking wheel not sure how to do that
+					   //    {{2.75_in, 0_in},	 // Wheel diameters for X and Y sensors
+					   // 	quadEncoderTPR},	 // TPR values for X and Y sensors
+					   //    StateMode::CARTESIAN
+					   ) // State mode
+						 // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
+						 // 1 horizontal tracking wheel and 1 vertical tracking wheel not sure how to do that
 				   .buildOdometry();
 
 auto profileController = AsyncMotionProfileControllerBuilder()
@@ -247,7 +251,7 @@ void autonomous()
 	intake.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	std::unique_ptr<okapi::AbstractTimer> timer = TimeUtilFactory().create().getTimer();
 	timer->placeMark();
-	std::unique_ptr<okapi::AbstractTimer> intakeTimer = TimeUtilFactory().create().getTimer();
+	std::unique_ptr<okapi::AbstractTimer> flywheelTimer = TimeUtilFactory().create().getTimer();
 	if (autonSelection == autonState::off)
 		autonSelection = autonState::off; // use testing if we havent selected an auton
 
@@ -258,7 +262,7 @@ void autonomous()
 		chassis->setState({0_in, 31_in, 0_deg}); // starting pos of middle of robot
 
 		chassis->driveToPoint({27_in, -1_in});
-		chassis->driveToPoint({22_in, -1_in});	
+		chassis->driveToPoint({22_in, -1_in});
 		chassis->driveToPoint({20_in, 33_in});
 		chassis->moveDistance(-8_in);
 		// intake.moveVelocity(-200);
@@ -284,80 +288,76 @@ void autonomous()
 		break;
 
 	case autonState::skills:
-		chassis->setState({0_in, 24_in, 0_deg});
 
-		// Generate a path that hits a ball into the goal
-		profileController->generatePath(
-			{{0_in, 24_in, 0_deg}, {42_in, 0_in, 0_deg}, {36_in, 0_in, 0_deg}, {42_in, 0_in, 0_deg}}, "F");
-		// Make the chassis follow the path
-		intake.moveVelocity(200);
-		profileController->setTarget("F");
-		profileController->waitUntilSettled();
-		intake.moveVelocity(0);
+		chassis->setState({-70_in, -48_in, 0_deg});
 
-		profileController->generatePath(
-			{{42_in, 0_in, 0_deg}, {10_in, 14_in, 60_deg}}, "G");
-		profileController->setTarget("G");
-		profileController->waitUntilSettled();
-		intake.moveRelative(-120, 200); // activate the descore arm
+		// score 2 red balls in the goal
+		chassis->driveToPoint({-50_in, -48_in});
+		chassis->driveToPoint({-34_in, -68_in});
+		chassis->driveToPoint({-28_in, -68_in});
+		chassis->driveToPoint({-34_in, -68_in});
 
-		// Move the flywheel for the specified duration
-		intakeTimer->placeMark();
-		while (intakeTimer->getDtFromMark().convert(second) < 27.5)
+		// go to matchload position
+		chassis->turnToPoint({-12_in, 45_in});
+		chassis->driveToPoint({-37_in, -68_in});
+		chassis->turnToPoint({-12_in, 45_in});
+		chassis->driveToPoint({-37_in, -68_in});
+
+		// matchload for 27.5 seconds
+		flywheelTimer->placeMark();
+		while (flywheelTimer->getDtFromMark().convert(second) < 27.5)
 		{
-			intake.moveVelocity(200);
+			flywheel.moveVelocity(600);
 		}
-		intake.moveVelocity(0);
-		intake.moveRelative(-240, 200); // deactivate the descore arm
+		flywheel.moveVelocity(0);
 
-		// Go to offensive zone and score balls from front
-		profileController->generatePath(
-			{{10_in, 14_in, 60_deg}, {4_in, 108_in, 60_deg}, {30_in, 108_in, 60_deg}}, "H");
-		profileController->setTarget("H");
-		profileController->waitUntilSettled();
+		// go to red side
+		chassis->driveToPoint({-66_in, -34_in});
+		chassis->turnToAngle(90_deg);
+		chassis->driveToPoint({-66_in, 30_in});
 
-		profileController->generatePath(
-			{{30_in, 108_in, 60_deg}, {32_in, 80_in, 0_deg}, {48_in, 120_in, 90_deg}}, "I"); // Hit 1 from close side
-		profileController->setTarget("I");
-		profileController->waitUntilSettled();
+		// score from right side of goal
+		chassis->turnAngle(20_deg);
+		chassis->driveToPoint({-34_in, 51_in});
+		chassis->driveToPoint({-28_in, 51_in});
+		chassis->driveToPoint({-34_in, 51_in});
 
-		profileController->generatePath(
-			{{48_in, 120_in, 90_deg}, {36_in, 108_in, 0_deg}, {63_in, 120_in, 90_deg}}, "J"); // Hit 2 from middle
-		profileController->setTarget("J");
-		profileController->waitUntilSettled();
+		// score from middle of goal 1
+		chassis->driveToPoint({-41_in, 27_in});
+		chassis->driveToPoint({-28_in, 5_in});
+		chassis->turnToPoint({-9_in, 39_in});
+		chassis->driveToPoint({-9_in, 39_in});
 
-		profileController->generatePath(
-			{{63_in, 120_in, 90_deg}, {54_in, 105_in, 0_deg}, {78_in, 120_in, 180_deg}}, "K"); // Hit 3 from far side
-		profileController->setTarget("K");
-		profileController->waitUntilSettled();
+		// score from middle of goal 2
+		chassis->driveToPoint({-9_in, 5_in});
+		chassis->turnToPoint({5_in, 45_in});
+		chassis->driveToPoint({5_in, 45_in});
 
-		// Go to far side and score balls from far side
-		profileController->generatePath(
-			{{78_in, 120_in, 180_deg}, {128_in, 96_in, 180_deg}, {108_in, 132_in, 180_deg}}, "L");
-		profileController->setTarget("L");
-		profileController->waitUntilSettled();
+		// score from middle of goal 3
+		chassis->driveToPoint({5_in, 5_in});
+		chassis->turnToPoint({15_in, 45_in});
+		chassis->driveToPoint({15_in, 45_in});
 
-		// Go to close side and score balls from close side
-		profileController->generatePath(
-			{{108_in, 132_in, 180_deg}, {128_in, 96_in, 180_deg}, {12_in, 96_in, 0_deg}, {42_in, 130_in, 0_deg}}, "M");
-		profileController->setTarget("M");
-		profileController->waitUntilSettled();
+		// score from left side of goal
+		chassis->driveToPoint({34_in, 20_in});
+		chassis->driveToPoint({53_in, 40_in});
+		chassis->turnToPoint({38_in, 50_in});
+		chassis->driveToPoint({38_in, 50_in});
 
-		// chassisLem.follow("path.txt", 2000, 15); // follow the path that has to be uploaded to the brain via sd card
+		// move back
+		chassis->driveToPoint({60_in, 40_in});
 		break;
 
 	case autonState::testing:
 
 		chassis->setState({0_in, 0_in, 0_deg});
-		
 
 		break;
-		// will be testing the rotations and the threshold for this function
 
 	default:
 		break;
 	}
-	
+
 	std::cout << pros::millis() << ": auton took " << timer->getDtFromMark().convert(second) << " seconds" << std::endl;
 
 	chassis->stop();
@@ -371,7 +371,7 @@ void opcontrol()
 
 	bool reversed = false;
 
-	bool flat = false;
+	bool flyToggle = false;
 
 	bool intakeIsToggled = false;
 
@@ -401,8 +401,6 @@ void opcontrol()
 			chassis->getModel()->tank(leftJoystick, rightJoystick);
 		}
 
-		// Pass the manipulated joystick values to tank drive thing
-
 		// intake controls and stuff
 		if (takeIn.isPressed())
 		{
@@ -413,19 +411,24 @@ void opcontrol()
 		{
 			intake.moveVelocity(200);
 			intakeIsToggled = false;
-		} else if (toggleIntake.changedToPressed())
+		}
+		else if (toggleIntake.changedToPressed())
 		{
 			intakeIsToggled = !intakeIsToggled;
-		} else if (intakeIsToggled)
+		}
+		else if (intakeIsToggled)
 		{
 			intake.moveVelocity(-200);
 		}
 		else
 		{
-			if(!intakeIsToggled){
+			if (!intakeIsToggled)
+			{
 				intake.moveVelocity(0);
 			}
 		}
+
+		// chassis brake mode controls and stuff
 		if (chassisHold.changedToPressed())
 		{
 			chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
@@ -433,6 +436,27 @@ void opcontrol()
 		else if (chassisCoast.changedToPressed())
 		{
 			chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
+		}
+
+		// flywheel controls and stuff
+		if (flywheelButton.isPressed())
+		{
+			flywheel.moveVelocity(600);
+		}
+		else if (flywheelToggle.changedToPressed())
+		{
+			flyToggle = !flyToggle;
+		}
+		else if (flyToggle)
+		{
+			flywheel.moveVelocity(600);
+		}
+		else
+		{
+			if (!flyToggle)
+			{
+				flywheel.moveVelocity(0);
+			}
 		}
 
 		pros::delay(20); // delay that is required for pros to work
