@@ -3,19 +3,19 @@
 #include "okapi/api.hpp"
 #include <iostream>
 #include "lemlib/api.hpp"
-#include <vector> 
 #pragma
 
-const int LEFT_MTR_B = 1;
-const int LEFT_MTR_M = 12;
-const int LEFT_MTR_F = 9;
-const int RIGHT_MTR_B = 11;
-const int RIGHT_MTR_M = 19;
-const int RIGHT_MTR_F = 4;
-const int INTAKE = 20;
-const int FLYWHEEL = 10;
-const int rightRotationSensor = 4;
-const int leftRotationSensor = 7;
+const int LEFT_MTR_B = 1; // |
+const int LEFT_MTR_M = 6; // |
+const int LEFT_MTR_F = 3; // |
+const int RIGHT_MTR_B = 7; // |
+const int RIGHT_MTR_M = 8; // |
+const int RIGHT_MTR_F = 9; // |
+const int INTAKE = 10; // |
+const int FLYWHEEL = 2;
+const int rightRotationSensor = 18; // |
+const int leftRotationSensor = 16; // |
+//port 11-13 on the brain is damaged
 
 // distance controller gains
 const float dkP = 0.0001;

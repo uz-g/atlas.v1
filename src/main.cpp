@@ -4,10 +4,10 @@ using namespace okapi;
 using namespace std;
 
 // create the motors
-Motor intake(INTAKE, false, okapi::AbstractMotor::gearset::green,
+Motor intake(INTAKE, false, okapi::AbstractMotor::gearset::blue,
 			 okapi::AbstractMotor::encoderUnits::degrees);
 
-Motor flywheel(FLYWHEEL, false, okapi::AbstractMotor::gearset::blue,
+Motor flywheel(FLYWHEEL, true, okapi::AbstractMotor::gearset::blue,
 			   okapi::AbstractMotor::encoderUnits::degrees);
 
 // create controller + buttons
@@ -52,17 +52,18 @@ auto chassis = ChassisControllerBuilder()
 					   {{3.25_in, 14.75_in}, imev5GreenTPR})		   // 3.25 inch wheels, 14.75 inch wheelbase width
 
 				   .withMaxVelocity(200)
-				   //    .withSensors(
-				   // 	   RotationSensor{leftRotationSensor},		 // left rotation sensor in V5 port 1
-				   // 	   RotationSensor{rightRotationSensor, true} // right rotation sensor in V5 port 2 (reversed)
-				   // 	   )
+				//    .withSensors(
+				// 	   RotationSensor{leftRotationSensor} // left rotation sensor in V5 port 1
+				// 	   ,
+				// 	   RotationSensor{rightRotationSensor, true} // right rotation sensor in V5 port 2 (reversed)
+				// 	   )
 				   .withOdometry(
-					   //    {{2.75_in, 0_in},	 // Wheel diameters for X and Y sensors
-					   // 	quadEncoderTPR},	 // TPR values for X and Y sensors
-					   //    StateMode::CARTESIAN
-					   ) // State mode
-						 // 2.75 inch wheels, 7 inch wheelbase width, and tpr for v5 rotation sensor
-						 // 1 horizontal tracking wheel and 1 vertical tracking wheel not sure how to do that
+					//    {{2.75_in, 4.15_in},		// Wheel diameters for left and right sensors and how far apart the wheels are
+					// 	quadEncoderTPR} // TPR values for sensors
+					//    ,
+					//    StateMode::CARTESIAN
+					   ) // State mode for something i dont know
+
 				   .buildOdometry();
 
 auto profileController = AsyncMotionProfileControllerBuilder()
@@ -247,13 +248,13 @@ void competition_initialize() {}
  */
 void autonomous()
 {
-	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::hold);
+	chassis->getModel()->setBrakeMode(okapi::AbstractMotor::brakeMode::brake);
 	intake.setBrakeMode(okapi::AbstractMotor::brakeMode::coast);
 	std::unique_ptr<okapi::AbstractTimer> timer = TimeUtilFactory().create().getTimer();
 	timer->placeMark();
 	std::unique_ptr<okapi::AbstractTimer> flywheelTimer = TimeUtilFactory().create().getTimer();
 	if (autonSelection == autonState::off)
-		autonSelection = autonState::off; // use testing if we havent selected an auton
+		autonSelection = autonState::skills; // use testing if we havent selected an auton
 
 	switch (autonSelection)
 	{
@@ -289,68 +290,63 @@ void autonomous()
 
 	case autonState::skills:
 
-		chassis->setState({-70_in, -48_in, 0_deg});
-
-		// score 2 red balls in the goal
-		chassis->driveToPoint({-50_in, -48_in});
-		chassis->driveToPoint({-34_in, -68_in});
-		chassis->driveToPoint({-28_in, -68_in});
-		chassis->driveToPoint({-34_in, -68_in});
-
-		// go to matchload position
-		chassis->turnToPoint({-12_in, 45_in});
-		chassis->driveToPoint({-37_in, -68_in});
-		chassis->turnToPoint({-12_in, 45_in});
-		chassis->driveToPoint({-37_in, -68_in});
-
-		// matchload for 27.5 seconds
+		
 		flywheelTimer->placeMark();
-		while (flywheelTimer->getDtFromMark().convert(second) < 27.5)
+		while (flywheelTimer->getDtFromMark().convert(second) < 40) 
 		{
 			flywheel.moveVelocity(600);
 		}
 		flywheel.moveVelocity(0);
+		intake.moveVelocity(-600);
 
-		// go to red side
-		chassis->driveToPoint({-66_in, -34_in});
-		chassis->turnToAngle(90_deg);
-		chassis->driveToPoint({-66_in, 30_in});
+		chassis->turnAngle(60_deg);
+		chassis->moveDistance(150_in);
 
-		// score from right side of goal
-		chassis->turnAngle(20_deg);
-		chassis->driveToPoint({-34_in, 51_in});
-		chassis->driveToPoint({-28_in, 51_in});
-		chassis->driveToPoint({-34_in, 51_in});
+		
+		
 
-		// score from middle of goal 1
-		chassis->driveToPoint({-41_in, 27_in});
-		chassis->driveToPoint({-28_in, 5_in});
-		chassis->turnToPoint({-9_in, 39_in});
-		chassis->driveToPoint({-9_in, 39_in});
+		// // go to red side
+		// chassis->driveToPoint({-66_in, -34_in});
+		// chassis->turnToAngle(90_deg);
+		// chassis->driveToPoint({-66_in, 30_in});
 
-		// score from middle of goal 2
-		chassis->driveToPoint({-9_in, 5_in});
-		chassis->turnToPoint({5_in, 45_in});
-		chassis->driveToPoint({5_in, 45_in});
+		// // score from right side of goal
+		// chassis->turnAngle(20_deg);
+		// chassis->driveToPoint({-34_in, 51_in});
+		// chassis->driveToPoint({-28_in, 51_in});
+		// chassis->driveToPoint({-34_in, 51_in});
 
-		// score from middle of goal 3
-		chassis->driveToPoint({5_in, 5_in});
-		chassis->turnToPoint({15_in, 45_in});
-		chassis->driveToPoint({15_in, 45_in});
+		// // score from middle of goal 1
+		// chassis->driveToPoint({-41_in, 27_in});
+		// chassis->driveToPoint({-28_in, 5_in});
+		// chassis->turnToPoint({-9_in, 39_in});
+		// chassis->driveToPoint({-9_in, 39_in});
 
-		// score from left side of goal
-		chassis->driveToPoint({34_in, 20_in});
-		chassis->driveToPoint({53_in, 40_in});
-		chassis->turnToPoint({38_in, 50_in});
-		chassis->driveToPoint({38_in, 50_in});
+		// // score from middle of goal 2
+		// chassis->driveToPoint({-9_in, 5_in});
+		// chassis->turnToPoint({5_in, 45_in});
+		// chassis->driveToPoint({5_in, 45_in});
 
-		// move back
-		chassis->driveToPoint({60_in, 40_in});
+		// // score from middle of goal 3
+		// chassis->driveToPoint({5_in, 5_in});
+		// chassis->turnToPoint({15_in, 45_in});
+		// chassis->driveToPoint({15_in, 45_in});
+
+		// // score from left side of goal
+		// chassis->driveToPoint({34_in, 20_in});
+		// chassis->driveToPoint({53_in, 40_in});
+		// chassis->turnToPoint({38_in, 50_in});
+		// chassis->driveToPoint({38_in, 50_in});
+
+		// // move back
+		// chassis->driveToPoint({60_in, 40_in});
 		break;
 
 	case autonState::testing:
 
 		chassis->setState({0_in, 0_in, 0_deg});
+		chassis->driveToPoint({0_in, 80_in});
+		chassis->driveToPoint({0_in, 0_in});
 
 		break;
 
@@ -404,12 +400,12 @@ void opcontrol()
 		// intake controls and stuff
 		if (takeIn.isPressed())
 		{
-			intake.moveVelocity(-200);
+			intake.moveVelocity(600);
 			intakeIsToggled = false;
 		}
 		else if (takeOut.isPressed())
 		{
-			intake.moveVelocity(200);
+			intake.moveVelocity(-600);
 			intakeIsToggled = false;
 		}
 		else if (toggleIntake.changedToPressed())
@@ -418,7 +414,7 @@ void opcontrol()
 		}
 		else if (intakeIsToggled)
 		{
-			intake.moveVelocity(-200);
+			intake.moveVelocity(600);
 		}
 		else
 		{
